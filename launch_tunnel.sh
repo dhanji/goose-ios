@@ -7,11 +7,11 @@ cleanup() {
     if [ ! -z "$GOOSED_PID" ]; then
         kill $GOOSED_PID 2>/dev/null
     fi
-    if [ ! -z "$LT_PID" ]; then
-        kill $LT_PID 2>/dev/null
+    if [ ! -z "$CLOUDFLARED_PID" ]; then
+        kill $CLOUDFLARED_PID 2>/dev/null
     fi
     killall goosed 2>/dev/null
-    pkill -f "lt --port 62996" 2>/dev/null
+    killall cloudflared 2>/dev/null
     rm -f tunnel_url.txt 2>/dev/null
     echo "Cleanup complete"
     exit 0
@@ -21,9 +21,9 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 # Install required tools if not already installed
-if ! command -v lt &> /dev/null; then
-    echo "Installing localtunnel..."
-    brew install localtunnel
+if ! command -v cloudflared &> /dev/null; then
+    echo "Installing cloudflared..."
+    brew install cloudflared
 fi
 
 if ! command -v qrencode &> /dev/null; then
@@ -42,8 +42,8 @@ export GOOSE_STANDALONE_MODE="true"
 # Kill any existing goosed processes
 killall goosed 2>/dev/null
 
-# Kill any existing localtunnel processes
-pkill -f "lt --port 62996" 2>/dev/null
+# Kill any existing cloudflared processes
+killall cloudflared 2>/dev/null
 
 # Wait a moment for processes to terminate
 sleep 1
@@ -57,15 +57,27 @@ echo "goosed started with PID: $GOOSED_PID"
 # Wait a moment for goosed to start
 sleep 2
 
-# Start localtunnel and capture its output
-echo "Starting localtunnel..."
-lt --port 62996 2>&1 | tee /dev/tty | grep -m 1 "your url is: https://.*\.loca\.lt" | sed 's/your url is: //' > tunnel_url.txt &
-LT_PID=$!
+# Start cloudflared and capture its output
+echo "Starting cloudflared tunnel..."
+rm -f tunnel_url.txt
+(cloudflared tunnel --url http://localhost:62996 2>&1 | while read line; do
+    echo "$line"
+    if echo "$line" | grep -q "trycloudflare.com"; then
+        echo "$line" | grep -o 'https://[^[:space:]]*\.trycloudflare\.com' > tunnel_url.txt
+    fi
+done) &
+CLOUDFLARED_PID=$!
 
-# Wait for the URL to be written
-sleep 3
+# Wait for the URL file to appear (up to 15 seconds)
+max_attempts=15
+attempt=0
+while [ ! -s tunnel_url.txt ] && [ $attempt -lt $max_attempts ]; do
+    sleep 1
+    echo "Waiting for tunnel URL... ($(($attempt + 1))/$max_attempts)"
+    attempt=$((attempt + 1))
+done
 
-if [ -f tunnel_url.txt ]; then
+if [ -s tunnel_url.txt ]; then
     # Get base URL and remove any newlines
     CONNECT_URL="$(cat tunnel_url.txt | tr -d '\n'):443"
     
@@ -99,7 +111,8 @@ if [ -f tunnel_url.txt ]; then
     echo ""
     echo "Press Ctrl+C to stop all services"
 else
-    echo "❌ Failed to get tunnel URL"
+    echo "❌ Failed to get tunnel URL after $max_attempts seconds"
+    cleanup
     exit 1
 fi
 
