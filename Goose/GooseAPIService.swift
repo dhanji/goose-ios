@@ -15,6 +15,11 @@ class GooseAPIService: ObservableObject {
     private var secretKey: String {
         UserDefaults.standard.string(forKey: "goose_secret_key") ?? "test"
     }
+    
+    // Trial mode detection
+    var isTrialMode: Bool {
+        return baseURL.contains("demo-goosed.fly.dev")
+    }
 
     private init() {}
     
@@ -431,6 +436,11 @@ class GooseAPIService: ObservableObject {
 
     // MARK: - Sessions Management
     func fetchSessions() async -> [ChatSession] {
+        // In trial mode, return mock sessions
+        if isTrialMode {
+            return getMockSessions()
+        }
+        
         guard let url = URL(string: "\(baseURL)/sessions") else {
             print("🚨 Invalid sessions URL")
             return []
@@ -460,6 +470,85 @@ class GooseAPIService: ObservableObject {
             print("🚨 Error fetching sessions: \(error)")
             
             return []
+        }
+    }
+    
+    // MARK: - Mock Sessions for Trial Mode
+    private func getMockSessions() -> [ChatSession] {
+        let now = Date()
+        let formatter = ISO8601DateFormatter()
+        
+        return [
+            ChatSession(
+                id: "trial-demo-1",
+                description: "📝 Writing a Python Script",
+                messageCount: 8,
+                createdAt: formatter.string(from: now.addingTimeInterval(-3600 * 24)),
+                updatedAt: formatter.string(from: now.addingTimeInterval(-3600 * 2))
+            ),
+            ChatSession(
+                id: "trial-demo-2",
+                description: "🔍 Analyzing Code Quality",
+                messageCount: 15,
+                createdAt: formatter.string(from: now.addingTimeInterval(-3600 * 48)),
+                updatedAt: formatter.string(from: now.addingTimeInterval(-3600 * 12))
+            ),
+            ChatSession(
+                id: "trial-demo-3",
+                description: "🚀 Setting Up CI/CD Pipeline",
+                messageCount: 23,
+                createdAt: formatter.string(from: now.addingTimeInterval(-3600 * 72)),
+                updatedAt: formatter.string(from: now.addingTimeInterval(-3600 * 24))
+            ),
+            ChatSession(
+                id: "trial-demo-4",
+                description: "💡 Debugging JavaScript Issues",
+                messageCount: 12,
+                createdAt: formatter.string(from: now.addingTimeInterval(-3600 * 96)),
+                updatedAt: formatter.string(from: now.addingTimeInterval(-3600 * 36))
+            ),
+            ChatSession(
+                id: "trial-demo-5",
+                description: "📱 Building a React Component",
+                messageCount: 19,
+                createdAt: formatter.string(from: now.addingTimeInterval(-3600 * 120)),
+                updatedAt: formatter.string(from: now.addingTimeInterval(-3600 * 48))
+            )
+        ]
+    }
+    
+    // Mock messages for trial mode sessions
+    func getMockMessages(for sessionId: String) -> [Message] {
+        switch sessionId {
+        case "trial-demo-1":
+            return [
+                Message(role: .user, text: "Can you help me write a Python script to process CSV files?"),
+                Message(role: .assistant, text: "I'd be happy to help you write a Python script for processing CSV files! To create the most useful script for your needs, could you tell me more about what specific processing you need to do?\n\nFor now, here's a basic template that demonstrates common CSV operations...")
+            ]
+        case "trial-demo-2":
+            return [
+                Message(role: .user, text: "I need to analyze the code quality of my JavaScript project"),
+                Message(role: .assistant, text: "I'll help you analyze your JavaScript project's code quality. There are several approaches we can take:\n\n1. **Static Analysis Tools**\n2. **Code Complexity Metrics**\n3. **Test Coverage**\n\nLet's start by setting up ESLint and running an initial analysis...")
+            ]
+        case "trial-demo-3":
+            return [
+                Message(role: .user, text: "Help me set up a CI/CD pipeline for my Node.js application"),
+                Message(role: .assistant, text: "I'll help you set up a comprehensive CI/CD pipeline for your Node.js application. We'll use GitHub Actions as it's free for public repositories and integrates seamlessly.\n\nHere's what we'll implement:\n- Automated testing on every push\n- Code quality checks\n- Automated deployment to production...")
+            ]
+        case "trial-demo-4":
+            return [
+                Message(role: .user, text: "My JavaScript app is throwing undefined errors, can you help debug?"),
+                Message(role: .assistant, text: "I'll help you debug those undefined errors. These are among the most common JavaScript issues. Let me guide you through a systematic debugging approach:\n\n1. **Check Variable Declarations**\n2. **Verify Object Properties**\n3. **Examine Async Operations**\n\nCan you share the specific error message and the relevant code?")
+            ]
+        case "trial-demo-5":
+            return [
+                Message(role: .user, text: "I want to build a reusable React component for a data table"),
+                Message(role: .assistant, text: "Great! I'll help you build a reusable and flexible React data table component. We'll create something that's:\n\n- **Sortable** - Click column headers to sort\n- **Filterable** - Search across all columns\n- **Paginated** - Handle large datasets efficiently\n- **Customizable** - Easy to style and extend\n\nLet me show you a complete implementation...")
+            ]
+        default:
+            return [
+                Message(role: .assistant, text: "This is a demo session. Connect to your own Goose agent to access your persistent sessions and full functionality.")
+            ]
         }
     }
 }

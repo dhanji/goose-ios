@@ -12,27 +12,43 @@ struct ChatView: View {
     @State private var completedToolCalls: [String: CompletedToolCall] = [:]
     @State private var toolCallMessageMap: [String: String] = [:]
     @State private var currentSessionId: String?
-    
+
     // Voice features
     @StateObject private var voiceManager = EnhancedVoiceManager()
-    
+
     // Memory management
-    private let maxMessages = 50 // Limit messages to prevent memory issues
-    private let maxToolCalls = 20 // Limit tool calls to prevent memory issues
-    
+    private let maxMessages = 50  // Limit messages to prevent memory issues
+    private let maxToolCalls = 20  // Limit tool calls to prevent memory issues
+
     // Efficient scroll management
     @State private var scrollTimer: Timer?
     @State private var shouldAutoScroll = true
-    @State private var scrollRefreshTrigger = UUID() // Force scroll refresh
-    @State private var lastScrollUpdate = Date() // Throttle streaming scrolls
-    @State private var isActivelyStreaming = false // Track if we're currently receiving streaming content
-    @State private var userIsScrolling = false // Track manual scroll interactions
-    @State private var lastContentHeight: CGFloat = 0 // Track content size changes
+    @State private var scrollRefreshTrigger = UUID()  // Force scroll refresh
+    @State private var lastScrollUpdate = Date()  // Throttle streaming scrolls
+    @State private var isActivelyStreaming = false  // Track if we're currently receiving streaming content
+    @State private var userIsScrolling = false  // Track manual scroll interactions
+    @State private var lastContentHeight: CGFloat = 0  // Track content size changes
 
     var body: some View {
         ZStack {
             // Main content in VStack (not overlapping)
             VStack(spacing: 0) {
+                // Trial mode banner
+                if apiService.isTrialMode {
+                    HStack {
+                        Image(systemName: "info.circle.fill")
+                            .foregroundColor(.white)
+                        Text("Trial Mode - Connect to your own Goose agent for full features")
+                            .font(.caption)
+                            .foregroundColor(.white)
+                        Spacer()
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(Color.orange)
+                    .shadow(radius: 2)
+                }
+
                 // Messages List
                 ScrollViewReader { proxy in
                     ScrollView {
@@ -40,14 +56,16 @@ struct ChatView: View {
                             ForEach(messages) { message in
                                 MessageBubbleView(message: message)
                                     .id(message.id)
-                                
+
                                 // Show tool calls that belong to this message
-                                ForEach(getToolCallsForMessage(message.id), id: \.self) { toolCallId in
+                                ForEach(getToolCallsForMessage(message.id), id: \.self) {
+                                    toolCallId in
                                     HStack {
                                         Spacer()
                                         if let activeCall = activeToolCalls[toolCallId] {
                                             ToolCallProgressView(toolCall: activeCall.toolCall)
-                                        } else if let completedCall = completedToolCalls[toolCallId] {
+                                        } else if let completedCall = completedToolCalls[toolCallId]
+                                        {
                                             CollapsibleToolCallView(completedCall: completedCall)
                                         }
                                         Spacer()
@@ -69,12 +87,11 @@ struct ChatView: View {
                                 .padding(.horizontal)
                                 .id("thinking-indicator")
                             }
-                            
 
                         }
                         .padding(.horizontal)
                         .padding(.top, 8)
-                        .padding(.bottom, 8) // Small padding at bottom
+                        .padding(.bottom, 8)  // Small padding at bottom
                     }
                     .simultaneousGesture(
                         DragGesture()
@@ -92,7 +109,10 @@ struct ChatView: View {
                                 print("📜 User finished scrolling gesture")
                             }
                     )
-                    .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+                    .onReceive(
+                        NotificationCenter.default.publisher(
+                            for: UIApplication.willEnterForegroundNotification)
+                    ) { _ in
                         // Only scroll when app comes to foreground, not on every update
                         if shouldAutoScroll {
                             scrollToBottom(proxy)
@@ -114,13 +134,13 @@ struct ChatView: View {
                         }
                     }
                 }
-                
+
                 // Input Area - now part of the VStack, not floating
                 VStack(spacing: 0) {
                     // Separator line
                     Divider()
                         .background(Color(.systemGray5))
-                    
+
                     // Voice mode selector - Compact Three state slider
                     HStack {
                         Spacer()
@@ -128,7 +148,7 @@ struct ChatView: View {
                         Spacer()
                     }
                     .padding(.vertical, 6)
-                    
+
                     // Show transcribed text while in voice mode
                     if voiceManager.voiceMode != .normal && !voiceManager.transcribedText.isEmpty {
                         HStack {
@@ -141,7 +161,7 @@ struct ChatView: View {
                         .padding(.horizontal)
                         .padding(.vertical, 4)
                     }
-                    
+
                     HStack(spacing: 12) {
                         // File upload button
                         Button(action: {
@@ -152,13 +172,13 @@ struct ChatView: View {
                                 .font(.title2)
                                 .foregroundColor(.primary)
                         }
-                        
+
                         TextField("build, solve, create...", text: $inputText, axis: .vertical)
                             .padding(12)
                             .background(Color(.secondarySystemBackground))
                             .cornerRadius(20)
                             .lineLimit(1...4)
-                            .disabled(voiceManager.voiceMode != .normal) // Disable when in voice mode
+                            .disabled(voiceManager.voiceMode != .normal)  // Disable when in voice mode
                             .onSubmit {
                                 sendMessage()
                             }
@@ -170,16 +190,21 @@ struct ChatView: View {
                                 sendMessage()
                             }
                         }) {
-                            Image(systemName: isLoading ? "stop.circle.fill" : "arrow.up.circle.fill")
-                                .font(.title2)
-                                .foregroundColor(
-                                    isLoading
-                                        ? .red
-                                        : (inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                                            ? .gray : .blue))
+                            Image(
+                                systemName: isLoading ? "stop.circle.fill" : "arrow.up.circle.fill"
+                            )
+                            .font(.title2)
+                            .foregroundColor(
+                                isLoading
+                                    ? .red
+                                    : (inputText.trimmingCharacters(in: .whitespacesAndNewlines)
+                                        .isEmpty
+                                        ? .gray : .blue))
                         }
                         .disabled(
-                            !isLoading && inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                            !isLoading
+                                && inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                        )
                     }
                     .padding(.horizontal)
                     .padding(.vertical, 8)
@@ -199,14 +224,17 @@ struct ChatView: View {
                     }
                 )
             }
-            
+
             // Sidebar overlay (this can stay in ZStack as it's a modal)
             if showingSidebar {
-                SidebarView(isShowing: $showingSidebar, onSessionSelect: { sessionId in
-                    loadSession(sessionId)
-                }, onNewSession: {
-                    createNewSession()
-                })
+                SidebarView(
+                    isShowing: $showingSidebar,
+                    onSessionSelect: { sessionId in
+                        loadSession(sessionId)
+                    },
+                    onNewSession: {
+                        createNewSession()
+                    })
             }
         }
         .onAppear {
@@ -216,7 +244,7 @@ struct ChatView: View {
                 inputText = transcribedText
                 sendMessage()
             }
-            
+
             Task {
                 await apiService.testConnection()
             }
@@ -224,7 +252,7 @@ struct ChatView: View {
     }
     private func scrollToBottom(_ proxy: ScrollViewProxy) {
         var lastId: String?
-        
+
         if let lastMessage = messages.last {
             let toolCallsForLastMessage = getToolCallsForMessage(lastMessage.id)
             if !toolCallsForLastMessage.isEmpty {
@@ -233,7 +261,7 @@ struct ChatView: View {
                 lastId = lastMessage.id
             }
         }
-        
+
         if let scrollId = lastId {
             withAnimation(.easeOut(duration: 0.3)) {
                 proxy.scrollTo(scrollId, anchor: .bottom)
@@ -249,7 +277,7 @@ struct ChatView: View {
         messages.append(userMessage)
         inputText = ""
         isLoading = true
-        
+
         // Re-enable auto-scroll when user sends a new message
         shouldAutoScroll = true
 
@@ -261,39 +289,42 @@ struct ChatView: View {
             do {
                 // Create session if we don't have one
                 if currentSessionId == nil {
-                    let (sessionId, initialMessages) = try await apiService.startAgent(workingDir: "/tmp")
+                    let (sessionId, initialMessages) = try await apiService.startAgent(
+                        workingDir: "/tmp")
                     print("✅ SESSION CREATED: \(sessionId)")
-                    
+
                     // Load any initial messages from the session
                     if !initialMessages.isEmpty {
                         await MainActor.run {
                             messages = initialMessages
                         }
                     }
-                    
+
                     // Read provider and model from config
                     print("🔧 READING PROVIDER AND MODEL FROM CONFIG")
                     guard let provider = await apiService.readConfigValue(key: "GOOSE_PROVIDER"),
-                          let model = await apiService.readConfigValue(key: "GOOSE_MODEL") else {
+                        let model = await apiService.readConfigValue(key: "GOOSE_MODEL")
+                    else {
                         throw APIError.noData
                     }
-                    
+
                     print("🔧 UPDATING PROVIDER TO \(provider) WITH MODEL \(model)")
-                    try await apiService.updateProvider(sessionId: sessionId, provider: provider, model: model)
+                    try await apiService.updateProvider(
+                        sessionId: sessionId, provider: provider, model: model)
                     print("✅ PROVIDER UPDATED FOR SESSION: \(sessionId)")
-                    
+
                     // Extend the system prompt with iOS-specific context
                     print("🔧 EXTENDING PROMPT FOR SESSION: \(sessionId)")
                     try await apiService.extendSystemPrompt(sessionId: sessionId)
                     print("✅ PROMPT EXTENDED FOR SESSION: \(sessionId)")
-                    
+
                     // Load enabled extensions just like desktop does
                     print("🔧 LOADING ENABLED EXTENSIONS FOR SESSION: \(sessionId)")
                     try await apiService.loadEnabledExtensions(sessionId: sessionId)
-                    
+
                     currentSessionId = sessionId
                 }
-                
+
                 guard let sessionId = currentSessionId else {
                     throw APIError.invalidResponse
                 }
@@ -326,7 +357,7 @@ struct ChatView: View {
                 await MainActor.run {
                     isLoading = false
                     print("🚨 Session setup error: \(error)")
-                    
+
                     let errorMessage = Message(
                         role: .assistant,
                         text: "❌ Failed to initialize session: \(error.localizedDescription)"
@@ -344,7 +375,7 @@ struct ChatView: View {
             print("⚠️ Ignoring SSE event - stream was cancelled")
             return
         }
-        
+
         switch event {
         case .message(let messageEvent):
             let incomingMessage = messageEvent.message
@@ -383,8 +414,10 @@ struct ChatView: View {
                     print("⚠️ Ignoring UI update - session was cleared")
                     return
                 }
-                
-                if let existingIndex = self.messages.firstIndex(where: { $0.id == incomingMessage.id }) {
+
+                if let existingIndex = self.messages.firstIndex(where: {
+                    $0.id == incomingMessage.id
+                }) {
                     var updatedMessage = self.messages[existingIndex]
 
                     if let existingTextContent = updatedMessage.content.first(where: {
@@ -401,7 +434,8 @@ struct ChatView: View {
                             updatedMessage = Message(
                                 id: incomingMessage.id, role: incomingMessage.role,
                                 content: [MessageContent.text(TextContent(text: combinedText))],
-                                created: incomingMessage.created, metadata: incomingMessage.metadata)
+                                created: incomingMessage.created, metadata: incomingMessage.metadata
+                            )
                         }
                     }
 
@@ -410,7 +444,7 @@ struct ChatView: View {
                     // Throttle to avoid excessive scrolling during rapid updates
                     if self.shouldAutoScroll {
                         let now = Date()
-                        if now.timeIntervalSince(self.lastScrollUpdate) > 0.1 { // Throttle to 10 updates per second
+                        if now.timeIntervalSince(self.lastScrollUpdate) > 0.1 {  // Throttle to 10 updates per second
                             self.lastScrollUpdate = now
                             self.scrollRefreshTrigger = UUID()
                         }
@@ -442,22 +476,23 @@ struct ChatView: View {
                 )
             }
             activeToolCalls.removeAll()
-            
+
             // Force final scroll to bottom when streaming completes
             if shouldAutoScroll {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                     scrollRefreshTrigger = UUID()
                 }
             }
-            
+
             // Handle voice mode response - only speak if in full audio mode
             if voiceManager.voiceMode == .fullAudio,
-               let lastMessage = messages.last,
-               lastMessage.role == .assistant,
-               let textContent = lastMessage.content.first(where: {
-                   if case .text = $0 { return true } else { return false }
-               }),
-               case .text(let content) = textContent {
+                let lastMessage = messages.last,
+                lastMessage.role == .assistant,
+                let textContent = lastMessage.content.first(where: {
+                    if case .text = $0 { return true } else { return false }
+                }),
+                case .text(let content) = textContent
+            {
                 print("🎤 Speaking response in full audio mode")
                 voiceManager.speakResponse(content.text)
             }
@@ -479,47 +514,47 @@ struct ChatView: View {
         currentStreamTask = nil
         isLoading = false
     }
-    
+
     private func getToolCallsForMessage(_ messageId: String) -> [String] {
         return toolCallMessageMap.compactMap { (toolCallId, mappedMessageId) in
             mappedMessageId == messageId ? toolCallId : nil
         }.sorted()
     }
-    
+
     private func limitMessages() {
         guard messages.count > maxMessages else { return }
-        
+
         // Keep only the most recent messages, but always keep the first message (usually system prompt)
         let messagesToRemove = messages.count - maxMessages
-        let startIndex = messages.count > 1 ? 1 : 0 // Keep first message if exists
-        
+        let startIndex = messages.count > 1 ? 1 : 0  // Keep first message if exists
+
         let removedMessages = Array(messages[startIndex..<startIndex + messagesToRemove])
         messages.removeSubrange(startIndex..<startIndex + messagesToRemove)
-        
+
         // Clean up tool call mappings for removed messages
         for removedMessage in removedMessages {
             toolCallMessageMap = toolCallMessageMap.filter { $0.value != removedMessage.id }
         }
-        
+
         print("🧹 Memory cleanup: removed \(messagesToRemove) old messages")
     }
-    
+
     private func limitToolCalls() {
         // Limit completed tool calls to prevent memory accumulation
         guard completedToolCalls.count > maxToolCalls else { return }
-        
+
         let toolCallsToRemove = completedToolCalls.count - maxToolCalls
         let sortedCalls = completedToolCalls.sorted { $0.value.completedAt < $1.value.completedAt }
-        
+
         for i in 0..<toolCallsToRemove {
             let toolCallId = sortedCalls[i].key
             completedToolCalls.removeValue(forKey: toolCallId)
             toolCallMessageMap.removeValue(forKey: toolCallId)
         }
-        
+
         print("🧹 Tool call cleanup: removed \(toolCallsToRemove) old tool calls")
     }
-    
+
     func loadSession(_ sessionId: String) {
         // CRITICAL: Cancel any existing stream before switching sessions
         if let currentTask = currentStreamTask {
@@ -527,57 +562,92 @@ struct ChatView: View {
             currentTask.cancel()
             currentStreamTask = nil
         }
-        
+
+        // Handle trial mode sessions differently
+        if apiService.isTrialMode && sessionId.starts(with: "trial-demo-") {
+            Task {
+                await MainActor.run {
+                    // Clear ALL old state first
+                    self.stopStreaming()
+                    activeToolCalls.removeAll()
+                    completedToolCalls.removeAll()
+                    toolCallMessageMap.removeAll()
+                    currentSessionId = nil  // Trial sessions don't have real session IDs
+
+                    // Load the mock messages
+                    messages = apiService.getMockMessages(for: sessionId)
+
+                    // Add a trial mode notice at the beginning
+                    let trialNotice = Message(
+                        role: .assistant,
+                        text:
+                            "🔔 **Trial Mode**: This is a trial session. To access persistent sessions and full functionality, connect to your personal goose agent."
+                    )
+                    messages.insert(trialNotice, at: 0)
+
+                    // Force scroll to bottom after loading
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        shouldAutoScroll = true
+                        scrollRefreshTrigger = UUID()
+                    }
+                }
+            }
+            return
+        }
+
         Task {
             do {
                 // Resume the session
-                let (resumedSessionId, sessionMessages) = try await apiService.resumeAgent(sessionId: sessionId)
+                let (resumedSessionId, sessionMessages) = try await apiService.resumeAgent(
+                    sessionId: sessionId)
                 print("✅ SESSION RESUMED: \(resumedSessionId)")
                 print("📝 Loaded \(sessionMessages.count) messages")
-                
+
                 // Read provider and model from config (same as new session)
                 print("🔧 READING PROVIDER AND MODEL FROM CONFIG")
                 guard let provider = await apiService.readConfigValue(key: "GOOSE_PROVIDER"),
-                      let model = await apiService.readConfigValue(key: "GOOSE_MODEL") else {
+                    let model = await apiService.readConfigValue(key: "GOOSE_MODEL")
+                else {
                     throw APIError.noData
                 }
-                
+
                 print("🔧 UPDATING PROVIDER TO \(provider) WITH MODEL \(model)")
-                try await apiService.updateProvider(sessionId: resumedSessionId, provider: provider, model: model)
+                try await apiService.updateProvider(
+                    sessionId: resumedSessionId, provider: provider, model: model)
                 print("✅ PROVIDER UPDATED FOR RESUMED SESSION: \(resumedSessionId)")
-                
+
                 // Extend the system prompt with iOS-specific context (same as new session)
                 print("🔧 EXTENDING PROMPT FOR RESUMED SESSION: \(resumedSessionId)")
                 try await apiService.extendSystemPrompt(sessionId: resumedSessionId)
                 print("✅ PROMPT EXTENDED FOR RESUMED SESSION: \(resumedSessionId)")
-                
+
                 // Load enabled extensions just like desktop does (same as new session)
                 print("🔧 LOADING ENABLED EXTENSIONS FOR RESUMED SESSION: \(resumedSessionId)")
                 try await apiService.loadEnabledExtensions(sessionId: resumedSessionId)
-                
+
                 // Update all state on main thread at once
                 await MainActor.run {
                     // CRITICAL: Clear ALL old state first to prevent event contamination
-                    self.stopStreaming() // This clears currentStreamTask and isLoading
+                    self.stopStreaming()  // This clears currentStreamTask and isLoading
                     activeToolCalls.removeAll()
                     completedToolCalls.removeAll()
                     toolCallMessageMap.removeAll()
-                    
+
                     // Set new state with forced UI refresh
                     currentSessionId = resumedSessionId
-                    
+
                     // Force UI refresh by clearing and setting messages
                     messages.removeAll()
                     messages = sessionMessages
-                    
+
                     print("📊 Messages array now has \(messages.count) messages")
                     print("📊 First message ID: \(messages.first?.id ?? "none")")
                     print("📊 Last message ID: \(messages.last?.id ?? "none")")
-                    
+
                     // Force scroll to bottom after loading
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                         shouldAutoScroll = true
-                        scrollRefreshTrigger = UUID() // Force UI refresh and scroll
+                        scrollRefreshTrigger = UUID()  // Force UI refresh and scroll
                     }
                 }
             } catch {
@@ -592,7 +662,7 @@ struct ChatView: View {
             }
         }
     }
-    
+
     func createNewSession() {
         // CRITICAL: Cancel any existing stream before creating new session
         if let currentTask = currentStreamTask {
@@ -600,7 +670,7 @@ struct ChatView: View {
             currentTask.cancel()
             currentStreamTask = nil
         }
-        
+
         // Clear all state for a fresh session
         messages.removeAll()
         activeToolCalls.removeAll()
@@ -608,7 +678,7 @@ struct ChatView: View {
         toolCallMessageMap.removeAll()
         currentSessionId = nil
         isLoading = false
-        
+
         print("🆕 Created new session - cleared all state")
     }
 }
@@ -619,7 +689,7 @@ struct SidebarView: View {
     let onSessionSelect: (String) -> Void
     let onNewSession: () -> Void
     @State private var sessions: [ChatSession] = []
-    
+
     var body: some View {
         ZStack {
             // Background overlay
@@ -630,7 +700,7 @@ struct SidebarView: View {
                         isShowing = false
                     }
                 }
-            
+
             // Sidebar panel
             HStack {
                 VStack(alignment: .leading, spacing: 0) {
@@ -639,9 +709,9 @@ struct SidebarView: View {
                         Text("Sessions")
                             .font(.title2)
                             .fontWeight(.bold)
-                        
+
                         Spacer()
-                        
+
                         Button(action: {
                             withAnimation(.easeInOut(duration: 0.3)) {
                                 isShowing = false
@@ -654,9 +724,9 @@ struct SidebarView: View {
                     }
                     .padding()
                     .background(Color(.systemBackground))
-                    
+
                     Divider()
-                    
+
                     // Sessions list
                     ScrollView {
                         LazyVStack(spacing: 0) {
@@ -672,9 +742,9 @@ struct SidebarView: View {
                             }
                         }
                     }
-                    
+
                     Spacer()
-                    
+
                     // New session button
                     Button(action: {
                         // Create new session
@@ -696,7 +766,7 @@ struct SidebarView: View {
                 .frame(width: 280)
                 .background(Color(.systemBackground))
                 .offset(x: isShowing ? 0 : -280)
-                
+
                 Spacer()
             }
         }
@@ -706,7 +776,7 @@ struct SidebarView: View {
             }
         }
     }
-    
+
     private func loadSessions() async {
         let fetchedSessions = await GooseAPIService.shared.fetchSessions()
         await MainActor.run {
@@ -718,18 +788,18 @@ struct SidebarView: View {
 // MARK: - Session Row View
 struct SessionRowView: View {
     let session: ChatSession
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(session.title)
                 .font(.headline)
                 .lineLimit(1)
-            
+
             Text(session.lastMessage)
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .lineLimit(2)
-            
+
             Text(formatDate(session.timestamp))
                 .font(.caption2)
                 .foregroundColor(.secondary)
@@ -737,7 +807,7 @@ struct SessionRowView: View {
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
     }
-    
+
     private func formatDate(_ date: Date) -> String {
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .short
@@ -751,7 +821,7 @@ struct ChatSession: Identifiable, Codable {
     let messageCount: Int
     let createdAt: String
     let updatedAt: String
-    
+
     enum CodingKeys: String, CodingKey {
         case id
         case description
@@ -759,16 +829,16 @@ struct ChatSession: Identifiable, Codable {
         case createdAt = "created_at"
         case updatedAt = "updated_at"
     }
-    
+
     // Computed properties for UI display
     var title: String {
         return description.isEmpty ? "Untitled Session" : description
     }
-    
+
     var lastMessage: String {
         return "\(messageCount) message\(messageCount == 1 ? "" : "s")"
     }
-    
+
     var timestamp: Date {
         // Parse the ISO 8601 date string
         let formatter = ISO8601DateFormatter()
