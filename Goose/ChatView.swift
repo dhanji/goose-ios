@@ -43,23 +43,22 @@ struct ChatView: View {
                     ScrollView {
                         LazyVStack(spacing: 12) {
                             ForEach(messages) { message in
-                                MessageBubbleView(message: message)
+                                MessageBubbleView(
+                                    message: message,
+                                    completedTasks: getCompletedTasksForMessage(message.id)
+                                )
                                     .id(message.id)
 
-                                // Show tool calls that belong to this message
-                                ForEach(getToolCallsForMessage(message.id), id: \.self) {
-                                    toolCallId in
-                                    HStack {
-                                        Spacer()
-                                        if let activeCall = activeToolCalls[toolCallId] {
+                                // Show ONLY active/in-progress tool calls (completed ones are in the pill)
+                                ForEach(getToolCallsForMessage(message.id), id: \.self) { toolCallId in
+                                    if let activeCall = activeToolCalls[toolCallId] {
+                                        HStack {
+                                            Spacer()
                                             ToolCallProgressView(toolCall: activeCall.toolCall)
-                                        } else if let completedCall = completedToolCalls[toolCallId]
-                                        {
-                                            CollapsibleToolCallView(completedCall: completedCall)
+                                            Spacer()
                                         }
-                                        Spacer()
+                                        .id("tool-\(toolCallId)")
                                     }
-                                    .id("tool-\(toolCallId)")
                                 }
                             }
 
@@ -148,15 +147,6 @@ struct ChatView: View {
                 Spacer()
                 
                 VStack(spacing: 0) {
-                    // Voice mode selector - Compact Three state slider
-                    HStack {
-                        Spacer()
-                        ThreeStateVoiceSlider(manager: voiceManager)
-                        Spacer()
-                    }
-                    .padding(.vertical, 8)
-                    .background(Color(UIColor.systemBackground).opacity(0.95))
-
                     // Show transcribed text while in voice mode
                     if voiceManager.voiceMode != .normal && !voiceManager.transcribedText.isEmpty {
                         HStack {
@@ -648,6 +638,11 @@ struct ChatView: View {
         return toolCallMessageMap.compactMap { (toolCallId, mappedMessageId) in
             mappedMessageId == messageId ? toolCallId : nil
         }.sorted()
+    }
+    
+    private func getCompletedTasksForMessage(_ messageId: String) -> [CompletedToolCall] {
+        let toolCallIds = getToolCallsForMessage(messageId)
+        return toolCallIds.compactMap { completedToolCalls[$0] }
     }
 
     private func limitMessages() {

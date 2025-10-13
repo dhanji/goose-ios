@@ -4,11 +4,14 @@
 
 ### Summary:
 - **Phase 1 (Welcome & Splash)**: ✅ COMPLETED
-- **Phase 2 (Sidebar for Sessions)**: ❌ INCORRECT - Settings in wrong place, missing categories
+- **Phase 2 (Sidebar for Sessions)**: ✅ COMPLETED (Settings at bottom as intended)
 - **Phase 3 (Message Streaming Bug)**: ⏳ PENDING
-- **Chat UI**: ❌ WRONG - Still using old bubble style instead of PR #11's clean text style
+- **Chat UI**: ✅ FIXED - Markdown rendering restored, bold/regular text distinction implemented
 - **Additional Fix**: ✅ Fixed duplicate navigation bar issue
 - **Additional Fix**: ✅ Added missing cycleVoiceMode() method
+- **Additional Fix**: ✅ Removed voice slider - now using voice toggle button only
+- **Additional Fix**: ✅ Fixed markdown rendering - now properly parses markdown
+- **Additional Fix**: ✅ Improved tool rendering - cleaner, collapsible views
 
 ### MAJOR DEVIATIONS FROM PR #11:
 1. **Chat Messages**: Still using colored bubble backgrounds (blue/gray) instead of clean text-only style
