@@ -118,4 +118,14 @@ class ConfigurationHandler: ObservableObject {
     func clearError() {
         configurationError = nil
     }
+    
+    /// Reset configuration to demo/trial mode
+    func resetToTrialMode() {
+        let config = ConfigurationData(
+            url: "https://demo-goosed.fly.dev",
+            secret: "test"
+        )
+        applyConfiguration(config)
+        print("🎯 Reset to trial mode")
+    }
 }

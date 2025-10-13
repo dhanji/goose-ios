@@ -8,6 +8,7 @@ struct SettingsView: View {
     @State private var baseURL: String = ""
     @State private var secretKey: String = ""
     @State private var isTestingConnection = false
+    @State private var showResetConfirmation = false
 
     var body: some View {
         NavigationView {
@@ -77,6 +78,30 @@ struct SettingsView: View {
                         Text("Version 1.0")
                             .font(.caption)
                             .foregroundColor(.secondary)
+                    }
+                }
+                
+                Section {
+                    Button(action: {
+                        showResetConfirmation = true
+                    }) {
+                        HStack {
+                            Image(systemName: "arrow.counterclockwise")
+                            Text("Reset to Trial Mode")
+                        }
+                        .foregroundColor(.orange)
+                    }
+                    .alert("Reset to Trial Mode?", isPresented: $showResetConfirmation) {
+                        Button("Cancel", role: .cancel) { }
+                        Button("Reset", role: .destructive) {
+                            configurationHandler.resetToTrialMode()
+                            // Reload the settings to reflect the change immediately
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                loadSettings()
+                            }
+                        }
+                    } message: {
+                        Text("This will reset your configuration to use the demo server (https://demo-goosed.fly.dev)")
                     }
                 }
             }

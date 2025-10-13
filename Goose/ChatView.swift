@@ -38,9 +38,11 @@ struct ChatView: View {
                     HStack {
                         Image(systemName: "info.circle.fill")
                             .foregroundColor(.white)
-                        Text("Trial Mode - Connect to your own Goose agent for full features")
-                            .font(.caption)
-                            .foregroundColor(.white)
+                        Text(
+                            "Trial Mode - Connect to your own Goose agent for the personal experience"
+                        )
+                        .font(.caption)
+                        .foregroundColor(.white)
                         Spacer()
                     }
                     .padding(.horizontal, 12)
