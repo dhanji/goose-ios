@@ -83,7 +83,7 @@ struct ChatView: View {
                                 .frame(height: 180)
                         }
                         .padding(.horizontal)
-                        .padding(.top, apiService.isTrialMode ? 130 : 90)  // Extra space for trial banner
+                        .padding(.top, apiService.isTrialMode ? 130 : 82)  // Extra space for trial banner
                     }
                     .simultaneousGesture(
                         DragGesture()
@@ -389,6 +389,17 @@ struct ChatView: View {
                 if let message = notification.userInfo?["message"] as? String {
                     inputText = message
                     sendMessage()
+                }
+            }
+            
+            // Listen for session load from WelcomeView
+            NotificationCenter.default.addObserver(
+                forName: Notification.Name("LoadSession"),
+                object: nil,
+                queue: .main
+            ) { notification in
+                if let sessionId = notification.userInfo?["sessionId"] as? String {
+                    loadSession(sessionId)
                 }
             }
         }
@@ -923,13 +934,10 @@ struct SidebarView: View {
 
                     // Bottom row: Settings button (matching PR #11 style)
                     Button(action: {
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            isShowing = false
-                        }
-                        // Small delay to let sidebar close before showing sheet
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                            isSettingsPresented = true
-                        }
+                        // Close sidebar immediately
+                        isShowing = false
+                        // Open settings immediately (sheet will present after sidebar closes)
+                        isSettingsPresented = true
                     }) {
                         HStack {
                             Image(systemName: "gear")

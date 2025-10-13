@@ -5,10 +5,12 @@ struct WelcomeView: View {
     @State private var inputText = ""
     @Environment(\.colorScheme) var colorScheme
     var onStartChat: (String) -> Void
+    var onSessionSelect: (String) -> Void
     
     // States for welcome view
     @State private var recentSessions: [ChatSession] = []
     @State private var isLoadingSessions = true
+    @State private var isSettingsPresented = false
     
     // Animation states
     @State private var displayedText = ""
@@ -23,9 +25,7 @@ struct WelcomeView: View {
             VStack(spacing: 0) {
                 HStack(spacing: 8) {
                     Button(action: {
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            showingSidebar.toggle()
-                        }
+                        isSettingsPresented = true
                     }) {
                         Image(systemName: "sidebar.left")
                             .font(.system(size: 22))
@@ -102,8 +102,7 @@ struct WelcomeView: View {
                                             .transition(.opacity)
                                             .onTapGesture {
                                                 // Load the session when tapped
-                                                print("Selected session: \(session.id)")
-                                                onStartChat("") // This will trigger navigation to chat
+                                                onSessionSelect(session.id)
                                             }
                                     }
                                 }
@@ -166,6 +165,10 @@ struct WelcomeView: View {
             )
             .padding(.horizontal, 16)
             .padding(.bottom, 40)
+        }
+        .sheet(isPresented: $isSettingsPresented) {
+            SettingsView()
+                .environmentObject(ConfigurationHandler.shared)
         }
         .onAppear {
             // Start typewriter animation
@@ -289,7 +292,13 @@ struct WelcomeSessionRowView: View {
 }
 
 #Preview {
-    WelcomeView(showingSidebar: .constant(false)) { text in
-        print("Starting chat with: \(text)")
-    }
+    WelcomeView(
+        showingSidebar: .constant(false),
+        onStartChat: { text in
+            print("Starting chat with: \(text)")
+        },
+        onSessionSelect: { sessionId in
+            print("Selected session: \(sessionId)")
+        }
+    )
 }

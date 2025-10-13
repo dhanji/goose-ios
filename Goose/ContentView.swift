@@ -7,6 +7,7 @@ struct ContentView: View {
     @State private var hasActiveChat = false
     @State private var initialMessage = ""
     @State private var shouldSendInitialMessage = false
+    @State private var selectedSessionId: String?
     @EnvironmentObject var configurationHandler: ConfigurationHandler
 
     var body: some View {
@@ -21,14 +22,21 @@ struct ContentView: View {
             NavigationView {
                 if !hasActiveChat {
                     // Welcome View when no active chat
-                    WelcomeView(showingSidebar: $showingSidebar) { message in
+                    WelcomeView(showingSidebar: $showingSidebar, onStartChat: { message in
                         // Start new chat with the message
                         initialMessage = message
                         shouldSendInitialMessage = !message.isEmpty
+                        selectedSessionId = nil // Clear session ID for new chat
                         withAnimation {
                             hasActiveChat = true
                         }
-                    }
+                    }, onSessionSelect: { sessionId in
+                        // Load existing session
+                        selectedSessionId = sessionId
+                        withAnimation {
+                            hasActiveChat = true
+                        }
+                    })
                     .navigationBarHidden(true)
                 } else {
                     // Chat View when there's an active chat
@@ -36,10 +44,12 @@ struct ContentView: View {
                         showingSidebar: $showingSidebar,
                         initialMessage: initialMessage,
                         shouldSendMessage: shouldSendInitialMessage,
+                        selectedSessionId: selectedSessionId,
                         onMessageSent: {
                             // Clear the initial message after sending
                             initialMessage = ""
                             shouldSendInitialMessage = false
+                            selectedSessionId = nil
                         }
                     )
                     .navigationBarHidden(true)
@@ -137,21 +147,30 @@ struct ConfigurationStatusView: View {
     }
 }
 
-// Wrapper to handle initial message
+// Wrapper to handle initial message and session loading
 struct ChatViewWithInitialMessage: View {
     @Binding var showingSidebar: Bool
     let initialMessage: String
     let shouldSendMessage: Bool
+    let selectedSessionId: String?
     let onMessageSent: () -> Void
     
     var body: some View {
         ChatView(showingSidebar: $showingSidebar)
             .onAppear {
-                if shouldSendMessage && !initialMessage.isEmpty {
+                // Load session if one was selected
+                if let sessionId = selectedSessionId {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        NotificationCenter.default.post(
+                            name: Notification.Name("LoadSession"),
+                            object: nil,
+                            userInfo: ["sessionId": sessionId]
+                        )
+                        onMessageSent()
+                    }
+                } else if shouldSendMessage && !initialMessage.isEmpty {
                     // Send the initial message after a brief delay to ensure view is ready
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                        // Access the ChatView's input and send functionality
-                        // This is a bit hacky but works for now
                         NotificationCenter.default.post(
                             name: Notification.Name("SendInitialMessage"),
                             object: nil,
