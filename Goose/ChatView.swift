@@ -36,9 +36,9 @@ struct ChatView: View {
             Color(UIColor.systemBackground)
                 .ignoresSafeArea()
 
-            // Main chat view
+            // Main content that stops before input area
             VStack(spacing: 0) {
-                // Messages List with proper spacing for floating elements
+                // Messages scroll view with proper constraints
                 ScrollViewReader { proxy in
                     ScrollView {
                         LazyVStack(spacing: 12) {
@@ -77,10 +77,10 @@ struct ChatView: View {
                                 .id("thinking-indicator")
                             }
 
-                            // Add bottom padding to account for floating input
-                            // Increased from 120 to prevent content scrolling behind input
+                            // Add space at the bottom so the last message can scroll above the input area
+                            // This is actual content space, not padding, so it scrolls with the messages
                             Spacer()
-                                .frame(height: 160)
+                                .frame(height: 180)
                         }
                         .padding(.horizontal)
                         .padding(.top, apiService.isTrialMode ? 130 : 90)  // Extra space for trial banner
@@ -203,18 +203,21 @@ struct ChatView: View {
                             HStack(spacing: 10) {
                                 // Voice mode indicator text
                                 if voiceManager.voiceMode != .normal {
-                                    Text(voiceManager.voiceMode == .audio ? "Transcribe" : "Full Audio")
-                                        .font(.caption)
-                                        .fontWeight(.medium)
-                                        .foregroundColor(.blue)
-                                        .padding(.horizontal, 8)
-                                        .padding(.vertical, 4)
-                                        .background(
-                                            RoundedRectangle(cornerRadius: 12)
-                                                .fill(Color.blue.opacity(0.1))
-                                        )
+                                    Text(
+                                        voiceManager.voiceMode == .audio
+                                            ? "Transcribe" : "Full Audio"
+                                    )
+                                    .font(.caption)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(.blue)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 4)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .fill(Color.blue.opacity(0.1))
+                                    )
                                 }
-                                
+
                                 // Audio/Voice button
                                 Button(action: {
                                     // Cycle through voice modes
@@ -404,6 +407,7 @@ struct ChatView: View {
 
         if let scrollId = lastId {
             withAnimation(.easeOut(duration: 0.3)) {
+                // Use .bottom to scroll all the way, the padding in the content should handle visibility
                 proxy.scrollTo(scrollId, anchor: .bottom)
             }
         }

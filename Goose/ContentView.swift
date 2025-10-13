@@ -15,7 +15,7 @@ struct ContentView: View {
             SplashScreenView(isActive: $showingSplash)
                 .onAppear {
                     // Warm up the demo server if in trial mode (non-blocking)
-                    warmUpDemoServerIfNeeded()
+                    warmUpServer()
                 }
         } else {
             NavigationView {
@@ -64,8 +64,8 @@ struct ContentView: View {
         }
     }
     
-    /// Warm up the demo server on first launch (non-blocking)
-    private func warmUpDemoServerIfNeeded() {
+    /// Warm up the server on first launch (non-blocking)
+    private func warmUpServer() {
         // Check if we're using the demo server
         let baseURL = UserDefaults.standard.string(forKey: "goose_base_url") ?? "https://demo-goosed.fly.dev"
         
