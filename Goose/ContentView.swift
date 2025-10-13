@@ -13,6 +13,10 @@ struct ContentView: View {
         if showingSplash {
             // Splash Screen
             SplashScreenView(isActive: $showingSplash)
+                .onAppear {
+                    // Warm up the demo server if in trial mode (non-blocking)
+                    warmUpDemoServerIfNeeded()
+                }
         } else {
             NavigationView {
                 if !hasActiveChat {
@@ -55,6 +59,34 @@ struct ContentView: View {
                         .onTapGesture {
                             configurationHandler.clearError()
                         }
+                }
+            }
+        }
+    }
+    
+    /// Warm up the demo server on first launch (non-blocking)
+    private func warmUpDemoServerIfNeeded() {
+        // Check if we're using the demo server
+        let baseURL = UserDefaults.standard.string(forKey: "goose_base_url") ?? "https://demo-goosed.fly.dev"
+        
+        // Only warm up if it's the demo server
+        if baseURL.contains("demo-goosed.fly.dev") {
+            Task {
+                // Fire-and-forget warm-up request
+                // We don't care about the response, just want to wake up the server
+                if let url = URL(string: baseURL) {
+                    var request = URLRequest(url: url)
+                    request.httpMethod = "GET"
+                    request.timeoutInterval = 10
+                    
+                    do {
+                        // Perform the request but don't wait or care about response
+                        let _ = try await URLSession.shared.data(for: request)
+                        print("🔥 Demo server warmed up")
+                    } catch {
+                        // Silently ignore any errors - this is just a warm-up
+                        print("🔥 Demo server warm-up attempted")
+                    }
                 }
             }
         }

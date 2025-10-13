@@ -35,7 +35,7 @@ struct ChatView: View {
             // Background color
             Color(UIColor.systemBackground)
                 .ignoresSafeArea()
-            
+
             // Main chat view
             VStack(spacing: 0) {
                 // Messages List with proper spacing for floating elements
@@ -47,10 +47,11 @@ struct ChatView: View {
                                     message: message,
                                     completedTasks: getCompletedTasksForMessage(message.id)
                                 )
-                                    .id(message.id)
+                                .id(message.id)
 
                                 // Show ONLY active/in-progress tool calls (completed ones are in the pill)
-                                ForEach(getToolCallsForMessage(message.id), id: \.self) { toolCallId in
+                                ForEach(getToolCallsForMessage(message.id), id: \.self) {
+                                    toolCallId in
                                     if let activeCall = activeToolCalls[toolCallId] {
                                         HStack {
                                             Spacer()
@@ -75,13 +76,14 @@ struct ChatView: View {
                                 .padding(.horizontal)
                                 .id("thinking-indicator")
                             }
-                            
+
                             // Add bottom padding to account for floating input
+                            // Increased from 120 to prevent content scrolling behind input
                             Spacer()
-                                .frame(height: 120)
+                                .frame(height: 160)
                         }
                         .padding(.horizontal)
-                        .padding(.top, apiService.isTrialMode ? 130 : 90) // Extra space for trial banner
+                        .padding(.top, apiService.isTrialMode ? 130 : 90)  // Extra space for trial banner
                     }
                     .simultaneousGesture(
                         DragGesture()
@@ -125,7 +127,7 @@ struct ChatView: View {
                     }
                 }
             }
-            
+
             // Gradient fade overlay to dim content above the input box
             VStack {
                 Spacer()
@@ -133,7 +135,7 @@ struct ChatView: View {
                     gradient: Gradient(colors: [
                         Color.clear,
                         Color(UIColor.systemBackground).opacity(0.7),
-                        Color(UIColor.systemBackground).opacity(0.95)
+                        Color(UIColor.systemBackground).opacity(0.95),
                     ]),
                     startPoint: .top,
                     endPoint: .bottom
@@ -141,11 +143,11 @@ struct ChatView: View {
                 .frame(height: 100)
                 .allowsHitTesting(false)
             }
-            
+
             // Floating input area
             VStack {
                 Spacer()
-                
+
                 VStack(spacing: 0) {
                     // Show transcribed text while in voice mode
                     if voiceManager.voiceMode != .normal && !voiceManager.transcribedText.isEmpty {
@@ -160,7 +162,7 @@ struct ChatView: View {
                         .padding(.bottom, 8)
                         .background(Color(UIColor.systemBackground).opacity(0.95))
                     }
-                    
+
                     // Input field with buttons
                     VStack(alignment: .leading, spacing: 12) {
                         // Text field on top
@@ -171,11 +173,13 @@ struct ChatView: View {
                             .padding(.vertical, 8)
                             .disabled(voiceManager.voiceMode != .normal)
                             .onSubmit {
-                                if !inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                                if !inputText.trimmingCharacters(in: .whitespacesAndNewlines)
+                                    .isEmpty
+                                {
                                     sendMessage()
                                 }
                             }
-                        
+
                         // Buttons row at bottom
                         HStack(spacing: 10) {
                             // Plus button - file attachment
@@ -193,65 +197,80 @@ struct ChatView: View {
                                     )
                             }
                             .buttonStyle(.plain)
-                            
+
                             Spacer()
-                            
+
                             HStack(spacing: 10) {
-                                // Extensions button (optional, can remove if not needed)
-                                Button(action: {
-                                    print("Extensions tapped")
-                                }) {
-                                    Image(systemName: "puzzlepiece.extension")
-                                        .font(.system(size: 12, weight: .medium))
-                                        .foregroundColor(.primary)
-                                        .frame(width: 32, height: 32)
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 16)
-                                                .inset(by: 0.5)
-                                                .stroke(Color(UIColor.separator), lineWidth: 0.5)
+                                // Voice mode indicator text
+                                if voiceManager.voiceMode != .normal {
+                                    Text(voiceManager.voiceMode == .audio ? "Transcribe" : "Full Audio")
+                                        .font(.caption)
+                                        .fontWeight(.medium)
+                                        .foregroundColor(.blue)
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 4)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .fill(Color.blue.opacity(0.1))
                                         )
                                 }
-                                .buttonStyle(.plain)
                                 
                                 // Audio/Voice button
                                 Button(action: {
                                     // Cycle through voice modes
                                     voiceManager.cycleVoiceMode()
                                 }) {
-                                    Image(systemName: voiceManager.voiceMode == .normal ? "waveform" : "waveform.circle.fill")
-                                        .font(.system(size: 14, weight: .medium))
-                                        .foregroundColor(voiceManager.voiceMode == .normal ? .primary : .blue)
-                                        .frame(width: 32, height: 32)
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 16)
-                                                .inset(by: 0.5)
-                                                .stroke(Color(UIColor.separator), lineWidth: 0.5)
-                                        )
+                                    Image(
+                                        systemName: voiceManager.voiceMode == .normal
+                                            ? "waveform" : "waveform.circle.fill"
+                                    )
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(
+                                        voiceManager.voiceMode == .normal ? .primary : .blue
+                                    )
+                                    .frame(width: 32, height: 32)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 16)
+                                            .inset(by: 0.5)
+                                            .stroke(Color(UIColor.separator), lineWidth: 0.5)
+                                    )
                                 }
                                 .buttonStyle(.plain)
-                                
+
                                 // Send/Stop button
                                 Button(action: {
                                     if isLoading {
                                         stopStreaming()
-                                    } else if !inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                                    } else if !inputText.trimmingCharacters(
+                                        in: .whitespacesAndNewlines
+                                    ).isEmpty {
                                         sendMessage()
                                     }
                                 }) {
                                     Image(systemName: isLoading ? "stop.fill" : "arrow.up")
                                         .font(.system(size: 17, weight: .medium))
-                                        .foregroundColor(isLoading ? .white : (inputText.isEmpty ? .gray : .white))
+                                        .foregroundColor(
+                                            isLoading
+                                                ? .white : (inputText.isEmpty ? .gray : .white)
+                                        )
                                         .frame(width: 32, height: 32)
                                         .background(
-                                            isLoading ? Color.red : 
-                                            (inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty 
-                                                ? Color.gray.opacity(0.3) 
-                                                : Color.blue)
+                                            isLoading
+                                                ? Color.red
+                                                : (inputText.trimmingCharacters(
+                                                    in: .whitespacesAndNewlines
+                                                ).isEmpty
+                                                    ? Color.gray.opacity(0.3)
+                                                    : Color.blue)
                                         )
                                         .cornerRadius(16)
                                 }
                                 .buttonStyle(.plain)
-                                .disabled(!isLoading && inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                                .disabled(
+                                    !isLoading
+                                        && inputText.trimmingCharacters(in: .whitespacesAndNewlines)
+                                            .isEmpty
+                                )
                             }
                         }
                     }
@@ -274,7 +293,7 @@ struct ChatView: View {
                     .padding(.bottom, 0)
                 }
             }
-            
+
             // Custom navigation bar with background
             VStack(spacing: 0) {
                 // Trial mode banner if applicable
@@ -282,16 +301,18 @@ struct ChatView: View {
                     HStack {
                         Image(systemName: "info.circle.fill")
                             .foregroundColor(.white)
-                        Text("Trial Mode - Connect to your own Goose agent")
-                            .font(.caption)
-                            .foregroundColor(.white)
+                        Text(
+                            "Trial Mode: connect to your own Goose agent for the full personal experience"
+                        )
+                        .font(.caption)
+                        .foregroundColor(.white)
                         Spacer()
                     }
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
                     .background(Color.orange)
                 }
-                
+
                 // Navigation bar
                 HStack(spacing: 8) {
                     Button(action: {
@@ -304,21 +325,21 @@ struct ChatView: View {
                             .foregroundColor(.primary)
                     }
                     .buttonStyle(.plain)
-                    
+
                     Spacer()
-                    
+
                     Text("goose")
                         .font(.headline)
                         .foregroundColor(.primary)
-                    
+
                     Spacer()
-                    
+
                     // Empty space where settings was - keeps title centered
                     Color.clear
                         .frame(width: 22, height: 22)
                 }
                 .padding(.horizontal, 16)
-                .padding(.top, 50) // Account for status bar
+                .padding(.top, 50)  // Account for status bar
                 .padding(.bottom, 12)
                 .background(
                     Color(UIColor.systemBackground)
@@ -355,7 +376,7 @@ struct ChatView: View {
             Task {
                 await apiService.testConnection()
             }
-            
+
             // Listen for initial message from WelcomeView
             NotificationCenter.default.addObserver(
                 forName: Notification.Name("SendInitialMessage"),
@@ -639,7 +660,7 @@ struct ChatView: View {
             mappedMessageId == messageId ? toolCallId : nil
         }.sorted()
     }
-    
+
     private func getCompletedTasksForMessage(_ messageId: String) -> [CompletedToolCall] {
         let toolCallIds = getToolCallsForMessage(messageId)
         return toolCallIds.compactMap { completedToolCalls[$0] }
@@ -877,7 +898,7 @@ struct SidebarView: View {
                             }
                             .padding(.horizontal)
                             .padding(.vertical, 8)
-                            
+
                             ForEach(sessions) { session in
                                 SessionRowView(session: session)
                                     .onTapGesture {
@@ -910,11 +931,11 @@ struct SidebarView: View {
                             Image(systemName: "gear")
                                 .font(.system(size: 18))
                                 .foregroundColor(.primary)
-                            
+
                             Text("Settings")
                                 .font(.system(size: 16))
                                 .foregroundColor(.primary)
-                            
+
                             Spacer()
                         }
                         .padding()

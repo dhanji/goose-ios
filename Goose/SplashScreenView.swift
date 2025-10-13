@@ -21,14 +21,32 @@ struct SplashScreenView: View {
                 .opacity(logoOpacity)
         }
         .onAppear {
+            // Check if this is first launch or if app hasn't been opened in a while
+            let lastOpenKey = "last_app_open_time"
+            let isFirstLaunch = UserDefaults.standard.object(forKey: "has_launched_before") == nil
+            let lastOpenTime = UserDefaults.standard.object(forKey: lastOpenKey) as? Date ?? Date.distantPast
+            let hoursSinceLastOpen = Date().timeIntervalSince(lastOpenTime) / 3600
+            
+            // Show longer splash on first launch or if hasn't been opened in 24+ hours
+            let showLongerSplash = isFirstLaunch || hoursSinceLastOpen > 24
+            
+            // Save current launch time
+            UserDefaults.standard.set(Date(), forKey: lastOpenKey)
+            UserDefaults.standard.set(true, forKey: "has_launched_before")
+            
+            // Adjust animation timings based on context
+            let fadeInDuration = showLongerSplash ? 0.4 : 0.2
+            let displayDuration = showLongerSplash ? 1.0 : 0.3
+            let fadeOutDuration = showLongerSplash ? 0.4 : 0.2
+            
             // Fade in logo
-            withAnimation(.easeIn(duration: 0.5)) {
+            withAnimation(.easeIn(duration: fadeInDuration)) {
                 logoOpacity = 1.0
             }
             
-            // After 1.5 seconds, transition to main content
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                withAnimation(.easeOut(duration: 0.5)) {
+            // After display duration, transition to main content
+            DispatchQueue.main.asyncAfter(deadline: .now() + displayDuration) {
+                withAnimation(.easeOut(duration: fadeOutDuration)) {
                     isActive = false
                 }
             }
