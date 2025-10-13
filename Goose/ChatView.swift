@@ -12,6 +12,7 @@ struct ChatView: View {
     @State private var completedToolCalls: [String: CompletedToolCall] = [:]
     @State private var toolCallMessageMap: [String: String] = [:]
     @State private var currentSessionId: String?
+    @State private var isSettingsPresented = false
 
     // Voice features
     @StateObject private var voiceManager = EnhancedVoiceManager()
@@ -30,28 +31,14 @@ struct ChatView: View {
     @State private var lastContentHeight: CGFloat = 0  // Track content size changes
 
     var body: some View {
-        ZStack {
-            // Main content in VStack (not overlapping)
+        ZStack(alignment: .top) {
+            // Background color
+            Color(UIColor.systemBackground)
+                .ignoresSafeArea()
+            
+            // Main chat view
             VStack(spacing: 0) {
-                // Trial mode banner
-                if apiService.isTrialMode {
-                    HStack {
-                        Image(systemName: "info.circle.fill")
-                            .foregroundColor(.white)
-                        Text(
-                            "Trial Mode - Connect to your own Goose agent for the personal experience"
-                        )
-                        .font(.caption)
-                        .foregroundColor(.white)
-                        Spacer()
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(Color.orange)
-                    .shadow(radius: 2)
-                }
-
-                // Messages List
+                // Messages List with proper spacing for floating elements
                 ScrollViewReader { proxy in
                     ScrollView {
                         LazyVStack(spacing: 12) {
@@ -89,11 +76,13 @@ struct ChatView: View {
                                 .padding(.horizontal)
                                 .id("thinking-indicator")
                             }
-
+                            
+                            // Add bottom padding to account for floating input
+                            Spacer()
+                                .frame(height: 120)
                         }
                         .padding(.horizontal)
-                        .padding(.top, 8)
-                        .padding(.bottom, 8)  // Small padding at bottom
+                        .padding(.top, apiService.isTrialMode ? 130 : 90) // Extra space for trial banner
                     }
                     .simultaneousGesture(
                         DragGesture()
@@ -136,20 +125,37 @@ struct ChatView: View {
                         }
                     }
                 }
-
-                // Input Area - now part of the VStack, not floating
+            }
+            
+            // Gradient fade overlay to dim content above the input box
+            VStack {
+                Spacer()
+                LinearGradient(
+                    gradient: Gradient(colors: [
+                        Color.clear,
+                        Color(UIColor.systemBackground).opacity(0.7),
+                        Color(UIColor.systemBackground).opacity(0.95)
+                    ]),
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: 100)
+                .allowsHitTesting(false)
+            }
+            
+            // Floating input area
+            VStack {
+                Spacer()
+                
                 VStack(spacing: 0) {
-                    // Separator line
-                    Divider()
-                        .background(Color(.systemGray5))
-
                     // Voice mode selector - Compact Three state slider
                     HStack {
                         Spacer()
                         ThreeStateVoiceSlider(manager: voiceManager)
                         Spacer()
                     }
-                    .padding(.vertical, 6)
+                    .padding(.vertical, 8)
+                    .background(Color(UIColor.systemBackground).opacity(0.95))
 
                     // Show transcribed text while in voice mode
                     if voiceManager.voiceMode != .normal && !voiceManager.transcribedText.isEmpty {
@@ -160,70 +166,174 @@ struct ChatView: View {
                                 .lineLimit(2)
                             Spacer()
                         }
-                        .padding(.horizontal)
-                        .padding(.vertical, 4)
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 8)
+                        .background(Color(UIColor.systemBackground).opacity(0.95))
                     }
-
-                    HStack(spacing: 12) {
-                        // File upload button
-                        Button(action: {
-                            // TODO: Implement file upload
-                            print("File upload tapped")
-                        }) {
-                            Image(systemName: "plus")
-                                .font(.title2)
-                                .foregroundColor(.primary)
-                        }
-
-                        TextField("build, solve, create...", text: $inputText, axis: .vertical)
-                            .padding(12)
-                            .background(Color(.secondarySystemBackground))
-                            .cornerRadius(20)
+                    
+                    // Input field with buttons
+                    VStack(alignment: .leading, spacing: 12) {
+                        // Text field on top
+                        TextField("I want to...", text: $inputText, axis: .vertical)
+                            .font(.system(size: 16))
+                            .foregroundColor(.primary)
                             .lineLimit(1...4)
-                            .disabled(voiceManager.voiceMode != .normal)  // Disable when in voice mode
+                            .padding(.vertical, 8)
+                            .disabled(voiceManager.voiceMode != .normal)
                             .onSubmit {
-                                sendMessage()
+                                if !inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                                    sendMessage()
+                                }
                             }
-
-                        Button(action: {
-                            if isLoading {
-                                stopStreaming()
-                            } else {
-                                sendMessage()
+                        
+                        // Buttons row at bottom
+                        HStack(spacing: 10) {
+                            // Plus button - file attachment
+                            Button(action: {
+                                print("File attachment tapped")
+                            }) {
+                                Image(systemName: "plus")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(.primary)
+                                    .frame(width: 32, height: 32)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 16)
+                                            .inset(by: 0.5)
+                                            .stroke(Color(UIColor.separator), lineWidth: 0.5)
+                                    )
                             }
-                        }) {
-                            Image(
-                                systemName: isLoading ? "stop.circle.fill" : "arrow.up.circle.fill"
-                            )
-                            .font(.title2)
-                            .foregroundColor(
-                                isLoading
-                                    ? .red
-                                    : (inputText.trimmingCharacters(in: .whitespacesAndNewlines)
-                                        .isEmpty
-                                        ? .gray : .blue))
+                            .buttonStyle(.plain)
+                            
+                            Spacer()
+                            
+                            HStack(spacing: 10) {
+                                // Extensions button (optional, can remove if not needed)
+                                Button(action: {
+                                    print("Extensions tapped")
+                                }) {
+                                    Image(systemName: "puzzlepiece.extension")
+                                        .font(.system(size: 12, weight: .medium))
+                                        .foregroundColor(.primary)
+                                        .frame(width: 32, height: 32)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 16)
+                                                .inset(by: 0.5)
+                                                .stroke(Color(UIColor.separator), lineWidth: 0.5)
+                                        )
+                                }
+                                .buttonStyle(.plain)
+                                
+                                // Audio/Voice button
+                                Button(action: {
+                                    // Cycle through voice modes
+                                    voiceManager.cycleVoiceMode()
+                                }) {
+                                    Image(systemName: voiceManager.voiceMode == .normal ? "waveform" : "waveform.circle.fill")
+                                        .font(.system(size: 14, weight: .medium))
+                                        .foregroundColor(voiceManager.voiceMode == .normal ? .primary : .blue)
+                                        .frame(width: 32, height: 32)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 16)
+                                                .inset(by: 0.5)
+                                                .stroke(Color(UIColor.separator), lineWidth: 0.5)
+                                        )
+                                }
+                                .buttonStyle(.plain)
+                                
+                                // Send/Stop button
+                                Button(action: {
+                                    if isLoading {
+                                        stopStreaming()
+                                    } else if !inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                                        sendMessage()
+                                    }
+                                }) {
+                                    Image(systemName: isLoading ? "stop.fill" : "arrow.up")
+                                        .font(.system(size: 17, weight: .medium))
+                                        .foregroundColor(isLoading ? .white : (inputText.isEmpty ? .gray : .white))
+                                        .frame(width: 32, height: 32)
+                                        .background(
+                                            isLoading ? Color.red : 
+                                            (inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty 
+                                                ? Color.gray.opacity(0.3) 
+                                                : Color.blue)
+                                        )
+                                        .cornerRadius(16)
+                                }
+                                .buttonStyle(.plain)
+                                .disabled(!isLoading && inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                            }
                         }
-                        .disabled(
-                            !isLoading
-                                && inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                        )
                     }
-                    .padding(.horizontal)
-                    .padding(.vertical, 8)
-                    .background(Color(.systemBackground))
+                    .padding(10)
+                    .frame(maxWidth: .infinity)
+                    .background(
+                        RoundedRectangle(cornerRadius: 21)
+                            .fill(.regularMaterial)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 21)
+                                    .fill(Color(UIColor.secondarySystemBackground).opacity(0.85))
+                            )
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 21)
+                            .inset(by: 0.5)
+                            .stroke(Color(UIColor.separator), lineWidth: 0.5)
+                    )
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 0)
                 }
-                .background(
-                    // Add shadow at the top of input area
-                    VStack {
-                        LinearGradient(
-                            gradient: Gradient(colors: [Color.black.opacity(0.05), Color.clear]),
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                        .frame(height: 3)
-                        .offset(y: -3)
+            }
+            
+            // Custom navigation bar with background
+            VStack(spacing: 0) {
+                // Trial mode banner if applicable
+                if apiService.isTrialMode {
+                    HStack {
+                        Image(systemName: "info.circle.fill")
+                            .foregroundColor(.white)
+                        Text("Trial Mode - Connect to your own Goose agent")
+                            .font(.caption)
+                            .foregroundColor(.white)
                         Spacer()
                     }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(Color.orange)
+                }
+                
+                // Navigation bar
+                HStack(spacing: 8) {
+                    Button(action: {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            showingSidebar.toggle()
+                        }
+                    }) {
+                        Image(systemName: "sidebar.left")
+                            .font(.system(size: 22))
+                            .foregroundColor(.primary)
+                    }
+                    .buttonStyle(.plain)
+                    
+                    Spacer()
+                    
+                    Text("goose")
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                    
+                    Spacer()
+                    
+                    // Empty space where settings was - keeps title centered
+                    Color.clear
+                        .frame(width: 22, height: 22)
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 50) // Account for status bar
+                .padding(.bottom, 12)
+                .background(
+                    Color(UIColor.systemBackground)
+                        .opacity(0.95)
+                        .background(.regularMaterial)
                 )
             }
 
@@ -231,6 +341,7 @@ struct ChatView: View {
             if showingSidebar {
                 SidebarView(
                     isShowing: $showingSidebar,
+                    isSettingsPresented: $isSettingsPresented,
                     onSessionSelect: { sessionId in
                         loadSession(sessionId)
                     },
@@ -238,6 +349,10 @@ struct ChatView: View {
                         createNewSession()
                     })
             }
+        }
+        .sheet(isPresented: $isSettingsPresented) {
+            SettingsView()
+                .environmentObject(ConfigurationHandler.shared)
         }
         .onAppear {
             // Set up voice manager callback
@@ -249,6 +364,18 @@ struct ChatView: View {
 
             Task {
                 await apiService.testConnection()
+            }
+            
+            // Listen for initial message from WelcomeView
+            NotificationCenter.default.addObserver(
+                forName: Notification.Name("SendInitialMessage"),
+                object: nil,
+                queue: .main
+            ) { notification in
+                if let message = notification.userInfo?["message"] as? String {
+                    inputText = message
+                    sendMessage()
+                }
             }
         }
     }
@@ -688,6 +815,7 @@ struct ChatView: View {
 // MARK: - Sidebar View
 struct SidebarView: View {
     @Binding var isShowing: Bool
+    @Binding var isSettingsPresented: Bool
     let onSessionSelect: (String) -> Void
     let onNewSession: () -> Void
     @State private var sessions: [ChatSession] = []
@@ -706,11 +834,22 @@ struct SidebarView: View {
             // Sidebar panel
             HStack {
                 VStack(alignment: .leading, spacing: 0) {
-                    // Header
+                    // Header with New Session button at top
                     HStack {
-                        Text("Sessions")
-                            .font(.title2)
-                            .fontWeight(.bold)
+                        Button(action: {
+                            onNewSession()
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                isShowing = false
+                            }
+                        }) {
+                            Image(systemName: "plus")
+                                .font(.system(size: 18, weight: .medium))
+                                .foregroundColor(.primary)
+                                .frame(width: 32, height: 32)
+                                .background(Color(.systemGray5))
+                                .cornerRadius(8)
+                        }
+                        .buttonStyle(.plain)
 
                         Spacer()
 
@@ -732,6 +871,18 @@ struct SidebarView: View {
                     // Sessions list
                     ScrollView {
                         LazyVStack(spacing: 0) {
+                            // Sessions header
+                            HStack {
+                                Text("Sessions")
+                                    .font(.caption)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(.secondary)
+                                    .textCase(.uppercase)
+                                Spacer()
+                            }
+                            .padding(.horizontal)
+                            .padding(.vertical, 8)
+                            
                             ForEach(sessions) { session in
                                 SessionRowView(session: session)
                                     .onTapGesture {
@@ -741,28 +892,40 @@ struct SidebarView: View {
                                         }
                                     }
                                 Divider()
+                                    .padding(.leading)
                             }
                         }
                     }
 
                     Spacer()
 
-                    // New session button
+                    Divider()
+
+                    // Bottom row: Settings button (matching PR #11 style)
                     Button(action: {
-                        // Create new session
-                        onNewSession()
                         withAnimation(.easeInOut(duration: 0.3)) {
                             isShowing = false
                         }
+                        // Small delay to let sidebar close before showing sheet
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                            isSettingsPresented = true
+                        }
                     }) {
                         HStack {
-                            Image(systemName: "plus.circle.fill")
-                            Text("New Session")
-                                .fontWeight(.medium)
+                            Image(systemName: "gear")
+                                .font(.system(size: 18))
+                                .foregroundColor(.primary)
+                            
+                            Text("Settings")
+                                .font(.system(size: 16))
+                                .foregroundColor(.primary)
+                            
+                            Spacer()
                         }
-                        .foregroundColor(.blue)
                         .padding()
+                        .contentShape(Rectangle())
                     }
+                    .buttonStyle(.plain)
                     .background(Color(.systemBackground))
                 }
                 .frame(width: 280)

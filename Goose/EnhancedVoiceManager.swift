@@ -147,6 +147,17 @@ class EnhancedVoiceManager: ObservableObject {
         voiceMode = mode
     }
     
+    func cycleVoiceMode() {
+        switch voiceMode {
+        case .normal:
+            setMode(.audio)
+        case .audio:
+            setMode(.fullAudio)
+        case .fullAudio:
+            setMode(.normal)
+        }
+    }
+    
     func handleUserInteraction() {
         // If we're speaking, stop speaking and return to listening (in voice mode)
         if state == .speaking && voiceMode == .fullAudio {

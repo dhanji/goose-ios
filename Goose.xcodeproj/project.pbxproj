@@ -10,6 +10,8 @@
 		5FB46C8A5B96A5D68C7CA66F /* VoiceInputManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F2CBE33C0F236E880C9F178 /* VoiceInputManager.swift */; };
 		834A2CB82E98D93A00D15D6A /* ContinuousVoiceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 834A2CB72E98D93A00D15D6A /* ContinuousVoiceManager.swift */; };
 		834A2CB92E98D93B00D15D6A /* EnhancedVoiceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 834A2CB82E98D93B00D15D6A /* EnhancedVoiceManager.swift */; };
+		838F2DE52E9CA43D00E2FC48 /* SplashScreenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 838F2DE32E9CA43D00E2FC48 /* SplashScreenView.swift */; };
+		838F2DE62E9CA43D00E2FC48 /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 838F2DE42E9CA43D00E2FC48 /* WelcomeView.swift */; };
 		83ACD8AB2E827DB500379D0E /* ConfigurationHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83ACD8A82E827DB500379D0E /* ConfigurationHandler.swift */; };
 		A1234567890ABCDEF001 /* GooseApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1234567890ABCDEF000 /* GooseApp.swift */; };
 		A1234567890ABCDEF003 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1234567890ABCDEF002 /* ContentView.swift */; };
@@ -28,6 +30,8 @@
 		0F2CBE33C0F236E880C9F178 /* VoiceInputManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceInputManager.swift; sourceTree = "<group>"; };
 		834A2CB72E98D93A00D15D6A /* ContinuousVoiceManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ContinuousVoiceManager.swift; path = Goose/ContinuousVoiceManager.swift; sourceTree = "<group>"; };
 		834A2CB82E98D93B00D15D6A /* EnhancedVoiceManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnhancedVoiceManager.swift; sourceTree = "<group>"; };
+		838F2DE32E9CA43D00E2FC48 /* SplashScreenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashScreenView.swift; sourceTree = "<group>"; };
+		838F2DE42E9CA43D00E2FC48 /* WelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeView.swift; sourceTree = "<group>"; };
 		83ACD8A82E827DB500379D0E /* ConfigurationHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigurationHandler.swift; sourceTree = "<group>"; };
 		83ACD8A92E827DB500379D0E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		83ACD8AC2E827FAE00379D0E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -76,6 +80,8 @@
 		A1234567890ABCDEF991 /* Goose */ = {
 			isa = PBXGroup;
 			children = (
+				838F2DE32E9CA43D00E2FC48 /* SplashScreenView.swift */,
+				838F2DE42E9CA43D00E2FC48 /* WelcomeView.swift */,
 				83ACD8AC2E827FAE00379D0E /* Info.plist */,
 				83ACD8A82E827DB500379D0E /* ConfigurationHandler.swift */,
 				83ACD8A92E827DB500379D0E /* Info.plist */,
@@ -180,6 +186,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				A1234567890ABCDEF003 /* ContentView.swift in Sources */,
+				838F2DE52E9CA43D00E2FC48 /* SplashScreenView.swift in Sources */,
+				838F2DE62E9CA43D00E2FC48 /* WelcomeView.swift in Sources */,
 				A1234567890ABCDEF010 /* ChatView.swift in Sources */,
 				5FB46C8A5B96A5D68C7CA66F /* VoiceInputManager.swift in Sources */,
 				C3E99F296500267DEFD596CA /* VoiceOutputManager.swift in Sources */,

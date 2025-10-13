@@ -6,54 +6,29 @@ struct MessageBubbleView: View {
     @State private var showFullText = false
     @State private var isTruncated = false
     
-    // Reasonable preview size - roughly 6-8 lines of text
-    private let maxHeight: CGFloat = 160 // Approximately 6-8 lines of normal text
+    // Maximum height for truncation - about 70% of screen like PR #11
+    private let maxHeight: CGFloat = UIScreen.main.bounds.height * 0.7
     
     var body: some View {
-        HStack {
-            if message.role == .user {
-                Spacer()
-            }
+        VStack(alignment: .leading, spacing: 8) {
+            // Message content - filter out tool responses
+            let filteredContent = message.content.filter { !isToolResponse($0) }
             
-            VStack(alignment: message.role == .user ? .trailing : .leading, spacing: 4) {
-                // Message content - only show if there's non-tool-response content
-                let filteredContent = message.content.filter { !isToolResponse($0) }
-                
-                if !filteredContent.isEmpty {
-                    VStack(alignment: .leading, spacing: 8) {
-                        ForEach(Array(filteredContent.enumerated()), id: \.offset) { index, content in
-                            TruncatableMessageContentView(
-                                content: content,
-                                maxHeight: maxHeight,
-                                showFullText: $showFullText,
-                                isTruncated: $isTruncated
-                            )
-                        }
+            if !filteredContent.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    ForEach(Array(filteredContent.enumerated()), id: \.offset) { index, content in
+                        TruncatableMessageContentView(
+                            content: content,
+                            maxHeight: maxHeight,
+                            showFullText: $showFullText,
+                            isTruncated: $isTruncated,
+                            isUserMessage: message.role == .user
+                        )
                     }
-                    .padding(12)
-                    .background(
-                        RoundedRectangle(cornerRadius: 16)
-                            .fill(message.role == .user ? Color.blue : Color(.systemGray6))
-                    )
-                    .foregroundColor(message.role == .user ? .white : .primary)
-                    .onTapGesture {
-                        if isTruncated {
-                            showFullText = true
-                        }
-                    }
-                    
-                    // Timestamp
-                    Text(formatTimestamp(message.created))
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
                 }
             }
-            .frame(maxWidth: UIScreen.main.bounds.width * 0.75, alignment: message.role == .user ? .trailing : .leading)
-            
-            if message.role == .assistant {
-                Spacer()
-            }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .sheet(isPresented: $showFullText) {
             FullTextOverlay(content: message.content.filter { !isToolResponse($0) })
         }
@@ -216,6 +191,7 @@ private struct MarkdownParser {
 struct MarkdownText: View {
     let text: String
     @State private var cachedAttributedText: AttributedString?
+    @State private var previousText = ""
     
     var body: some View {
         Text(cachedAttributedText ?? AttributedString(text))
@@ -223,13 +199,25 @@ struct MarkdownText: View {
             .onAppear {
                 if cachedAttributedText == nil {
                     cachedAttributedText = MarkdownParser.parse(text)
+                    previousText = text
                 }
             }
-            .onChange(of: text) {
+            .onChange(of: text) { newText in
                 // Only reparse if text changed significantly
-                if !text.hasPrefix(text) || text.count - text.count > 50 {
-                    cachedAttributedText = MarkdownParser.parse(text)
+                if !newText.hasPrefix(previousText) || newText.count - previousText.count > 50 {
+                    // Full reparse for significant changes
+                    cachedAttributedText = MarkdownParser.parse(newText)
+                } else if newText != previousText {
+                    // For streaming: just append the new part efficiently
+                    if let cached = cachedAttributedText {
+                        let newPart = String(newText.dropFirst(previousText.count))
+                        // Try to append without full reparse for efficiency
+                        cachedAttributedText = cached + AttributedString(newPart)
+                    } else {
+                        cachedAttributedText = MarkdownParser.parse(newText)
+                    }
                 }
+                previousText = newText
             }
     }
 }
@@ -825,16 +813,17 @@ struct TruncatableMessageContentView: View {
     let maxHeight: CGFloat
     @Binding var showFullText: Bool
     @Binding var isTruncated: Bool
+    let isUserMessage: Bool
     
     var body: some View {
         switch content {
         case .text(let textContent):
-            TruncatableMarkdownText(
-                text: textContent.text,
-                maxHeight: maxHeight,
-                isTruncated: $isTruncated
-            )
-            .textSelection(.enabled)
+            Text(textContent.text)
+                .font(.system(size: 16, weight: isUserMessage ? .bold : .regular))
+                .lineSpacing(8)
+                .foregroundColor(.primary)
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
             
         case .toolRequest(let toolContent):
             ToolRequestView(toolContent: toolContent)
