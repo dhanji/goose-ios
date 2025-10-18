@@ -380,7 +380,7 @@ struct WelcomeSessionRowView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(session.description.isEmpty ? "Session \(session.id.prefix(8))" : session.description)
+            Text(session.name.isEmpty ? "Session \(session.id.prefix(8))" : session.name)
                 .font(.system(size: 16))
                 .foregroundColor(.primary)
                 .lineLimit(1)

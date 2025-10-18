@@ -93,7 +93,6 @@
 		A1234567890ABCDEF990 = {
 			isa = PBXGroup;
 			children = (
-				D3BC34012EA18E160057E748 /* SessionsCard.swift */,
 				838F2DE92E9E1CF700E2FC48 /* TaskDetailView.swift */,
 				838F2DEA2E9E1CF700E2FC48 /* ThemeManager.swift */,
 				834A2CB72E98D93A00D15D6A /* ContinuousVoiceManager.swift */,
@@ -115,6 +114,7 @@
 				838F2DE42E9CA43D00E2FC48 /* WelcomeView.swift */,
 				D3BC34032EA19D990057E748 /* NodeFocus.swift */,
 				D3BC33FF2EA1713D0057E748 /* NodeMatrix.swift */,
+				D3BC34012EA18E160057E748 /* SessionsCard.swift */,
 				83ACD8AC2E827FAE00379D0E /* Info.plist */,
 				83ACD8A82E827DB500379D0E /* ConfigurationHandler.swift */,
 				83ACD8A92E827DB500379D0E /* Info.plist */,

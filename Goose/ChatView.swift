@@ -1050,14 +1050,14 @@ struct ChatView: View {
 // MARK: - Chat Session Model (matches goosed API)
 struct ChatSession: Identifiable, Codable {
     let id: String
-    let description: String
+    let name: String
     let messageCount: Int
     let createdAt: String
     let updatedAt: String
 
     enum CodingKeys: String, CodingKey {
         case id
-        case description
+        case name
         case messageCount = "message_count"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
@@ -1065,7 +1065,7 @@ struct ChatSession: Identifiable, Codable {
 
     // Computed properties for UI display
     var title: String {
-        return description.isEmpty ? "Untitled Session" : description
+        return name.isEmpty ? "Untitled Session" : name
     }
 
     var lastMessage: String {

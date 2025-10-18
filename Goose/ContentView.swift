@@ -100,7 +100,7 @@ struct ContentView: View {
                         onSessionSelect: { sessionId in
                             // Find session to get its name
                             if let session = cachedSessions.first(where: { $0.id == sessionId }) {
-                                let name = session.description.isEmpty ? "Untitled Session" : session.description
+                                let name = session.name.isEmpty ? "Untitled Session" : session.name
                                 navigateToSession(sessionId: sessionId, sessionName: name)
                             }
                         },

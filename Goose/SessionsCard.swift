@@ -6,6 +6,8 @@ struct SessionsCard: View {
     let onClose: () -> Void
     let onSessionSelect: (String) -> Void
     
+    @State private var showContent = false
+    
     // Computed property for card background color
     private var cardBackgroundColor: Color {
         colorScheme == .dark ?
@@ -73,61 +75,60 @@ struct SessionsCard: View {
                 Spacer()
             }
             
-            // Session title and metadata
-            VStack(alignment: .leading, spacing: 12) {
-                // Session description/title
-                Text(session.description.isEmpty ? "Untitled Session" : session.description)
-                    .font(.system(size: 28, weight: .semibold))
-                    .foregroundColor(.primary)
-                    .lineLimit(2)
-                
-                // Time ago
-                Text(timeAgo)
-                    .font(.system(size: 14))
-                    .foregroundColor(.secondary)
-            }
-            
-            // Message nodes visualization - based on message count
-            if session.messageCount > 0 {
-                SimulatedMessageNodesView(messageCount: session.messageCount)
-                    .frame(height: 80)
-            }
-            
-            // Session stats
-            HStack(spacing: 24) {
-                // Message count
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("MESSAGES")
-                        .font(.system(size: 11, weight: .semibold))
-                        .tracking(0.92)
-                        .foregroundColor(Color(red: 0.56, green: 0.56, blue: 0.66))
-                    
-                    Text("\(session.messageCount)")
-                        .font(.system(size: 24, weight: .semibold))
+            if showContent {
+                // Session title and metadata
+                VStack(alignment: .leading, spacing: 12) {
+                    // Session description/title
+                    Text(session.name.isEmpty ? "Untitled Session" : session.name)
+                        .font(.system(size: 28, weight: .semibold))
                         .foregroundColor(.primary)
-                }
-                
-                Spacer()
-            }
-            
-            // Action button
-            Button(action: {
-                onSessionSelect(session.id)
-            }) {
-                HStack {
-                    Text("Open Session")
-                        .font(.system(size: 16, weight: .semibold))
+                        .lineLimit(2)
                     
-                    Image(systemName: "arrow.right")
-                        .font(.system(size: 14, weight: .semibold))
+                    // Time ago
+                    Text(timeAgo)
+                        .font(.system(size: 14))
+                        .foregroundColor(.secondary)
                 }
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
-                .background(Color.blue)
-                .cornerRadius(12)
+                .transition(.opacity.combined(with: .move(edge: .top)))
+                
+                // Session stats
+                HStack(spacing: 24) {
+                    // Message count
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("MESSAGES")
+                            .font(.system(size: 11, weight: .semibold))
+                            .tracking(0.92)
+                            .foregroundColor(Color(red: 0.56, green: 0.56, blue: 0.66))
+                        
+                        Text("\(session.messageCount)")
+                            .font(.system(size: 24, weight: .semibold))
+                            .foregroundColor(.primary)
+                    }
+                    
+                    Spacer()
+                }
+                .transition(.opacity.combined(with: .move(edge: .top)))
+                
+                // Action button
+                Button(action: {
+                    onSessionSelect(session.id)
+                }) {
+                    HStack {
+                        Text("Open Session")
+                            .font(.system(size: 16, weight: .semibold))
+                        
+                        Image(systemName: "arrow.right")
+                            .font(.system(size: 14, weight: .semibold))
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(Color.blue)
+                    .cornerRadius(12)
+                }
+                .buttonStyle(.plain)
+                .transition(.opacity.combined(with: .move(edge: .bottom)))
             }
-            .buttonStyle(.plain)
         }
         .padding(.horizontal, 20)
         .padding(.top, 48)
@@ -158,86 +159,11 @@ struct SessionsCard: View {
             x: 0,
             y: 8
         )
-    }
-}
-
-// MARK: - Simulated Message Nodes View (based on message count)
-struct SimulatedMessageNodesView: View {
-    let messageCount: Int
-    @Environment(\.colorScheme) var colorScheme
-    
-    // Limit the number of dots displayed for performance and visual clarity
-    private var displayedDotCount: Int {
-        if messageCount <= 20 {
-            return messageCount
-        } else if messageCount <= 50 {
-            // Show every other message
-            return messageCount / 2
-        } else {
-            // Cap at 25 dots maximum
-            return min(25, messageCount / 3)
-        }
-    }
-    
-    var body: some View {
-        GeometryReader { geometry in
-            ZStack {
-                // Draw connecting line
-                if displayedDotCount > 1 {
-                    Path { path in
-                        let startX = geometry.size.width * 0.1
-                        let endX = geometry.size.width * 0.9
-                        let y = geometry.size.height / 2
-                        
-                        path.move(to: CGPoint(x: startX, y: y))
-                        path.addLine(to: CGPoint(x: endX, y: y))
-                    }
-                    .stroke(
-                        colorScheme == .dark ?
-                        Color.white.opacity(0.15) :
-                        Color.black.opacity(0.1),
-                        style: StrokeStyle(lineWidth: 1, lineCap: .round)
-                    )
-                }
-                
-                // Draw simulated message nodes
-                ForEach(0..<displayedDotCount, id: \.self) { index in
-                    let position = nodePosition(for: index, total: displayedDotCount, in: geometry.size)
-                    
-                    Circle()
-                        .fill(nodeColor(for: index))
-                        .frame(width: 6, height: 6)
-                        .position(position)
-                }
+        .onAppear {
+            // Animate content in
+            withAnimation(.spring(response: 0.5, dampingFraction: 0.8).delay(0.1)) {
+                showContent = true
             }
-        }
-    }
-    
-    // Calculate position for each message node
-    private func nodePosition(for index: Int, total: Int, in size: CGSize) -> CGPoint {
-        let startX = size.width * 0.1
-        let endX = size.width * 0.9
-        let availableWidth = endX - startX
-        
-        let progress = total > 1 ? CGFloat(index) / CGFloat(total - 1) : 0.5
-        let x = startX + (availableWidth * progress)
-        let y = size.height / 2
-        
-        return CGPoint(x: x, y: y)
-    }
-    
-    // Simulate alternating user/assistant pattern with occasional system messages
-    private func nodeColor(for index: Int) -> Color {
-        // First message is typically user, then alternates with assistant
-        // Occasionally add a system message (every 7th message)
-        if index % 7 == 6 {
-            return Color.gray.opacity(0.5) // System message
-        } else if index % 2 == 0 {
-            return Color.blue.opacity(colorScheme == .dark ? 0.6 : 0.5) // User message
-        } else {
-            return colorScheme == .dark ?
-                Color.white.opacity(0.5) :
-                Color.black.opacity(0.3) // Assistant message
         }
     }
 }
@@ -258,7 +184,7 @@ struct SimulatedMessageNodesView: View {
             SessionsCard(
                 session: ChatSession(
                     id: "123",
-                    description: "Building a SwiftUI app with node visualization",
+                    name: "Building a SwiftUI app with node visualization",
                     messageCount: 42,
                     createdAt: formatter.string(from: twoHoursAgo),
                     updatedAt: formatter.string(from: twoHoursAgo)

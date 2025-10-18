@@ -10,7 +10,7 @@ struct NodeFocus: View {
             // Header with session title
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(session.description.isEmpty ? "Session \(session.id.prefix(8))" : session.description)
+                    Text(session.name.isEmpty ? "Session \(session.id.prefix(8))" : session.name)
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundColor(.primary)
                         .lineLimit(2)
@@ -64,7 +64,7 @@ struct NodeFocus: View {
         NodeFocus(
             session: ChatSession(
                 id: "test-123",
-                description: "Working on iOS app features",
+                name: "Working on iOS app features",
                 messageCount: 12,
                 createdAt: "2024-01-15T10:30:00Z",
                 updatedAt: "2024-01-15T14:45:00Z"

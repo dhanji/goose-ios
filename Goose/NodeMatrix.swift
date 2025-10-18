@@ -531,13 +531,13 @@ struct SimulatedMessageDotsOverlay: View {
         NodeMatrix(
             sessions: [
                 // Today
-                ChatSession(id: "1", description: "Early Morning", messageCount: 5, createdAt: dateString(daysAgo: 0, hoursAgo: 8), updatedAt: dateString(daysAgo: 0, hoursAgo: 8)),
-                ChatSession(id: "2", description: "Morning", messageCount: 12, createdAt: dateString(daysAgo: 0, hoursAgo: 7, minutesOffset: 30), updatedAt: dateString(daysAgo: 0, hoursAgo: 7, minutesOffset: 30)),
-                ChatSession(id: "3", description: "Late Morning", messageCount: 8, createdAt: dateString(daysAgo: 0, hoursAgo: 7), updatedAt: dateString(daysAgo: 0, hoursAgo: 7)),
+                ChatSession(id: "1", name: "Early Morning", messageCount: 5, createdAt: dateString(daysAgo: 0, hoursAgo: 8), updatedAt: dateString(daysAgo: 0, hoursAgo: 8)),
+                ChatSession(id: "2", name: "Morning", messageCount: 12, createdAt: dateString(daysAgo: 0, hoursAgo: 7, minutesOffset: 30), updatedAt: dateString(daysAgo: 0, hoursAgo: 7, minutesOffset: 30)),
+                ChatSession(id: "3", name: "Late Morning", messageCount: 8, createdAt: dateString(daysAgo: 0, hoursAgo: 7), updatedAt: dateString(daysAgo: 0, hoursAgo: 7)),
             ],
             selectedSessionId: "2",
             onNodeTap: { session, position in
-                print("Tapped session: \(session.description) at position: \(position)")
+                print("Tapped session: \(session.name) at position: \(position)")
             },
             showDraftNode: true
         )
