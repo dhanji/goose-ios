@@ -98,7 +98,7 @@ struct ContentView: View {
                         isSettingsPresented: $isSettingsPresented,
                         cachedSessions: $cachedSessions,
                         onSessionSelect: { sessionId in
-                            // Find session to get its name
+                            // Find session to get its description
                             if let session = cachedSessions.first(where: { $0.id == sessionId }) {
                                 let name = session.description.isEmpty ? "Untitled Session" : session.description
                                 navigateToSession(sessionId: sessionId, sessionName: name)

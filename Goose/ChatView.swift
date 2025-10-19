@@ -1048,7 +1048,7 @@ struct ChatView: View {
 }
 
 // MARK: - Chat Session Model (matches goosed API)
-struct ChatSession: Identifiable, Codable {
+struct ChatSession: Identifiable, Codable, Equatable {
     let id: String
     let description: String
     let messageCount: Int
@@ -1061,6 +1061,13 @@ struct ChatSession: Identifiable, Codable {
         case messageCount = "message_count"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
+    }
+    
+    static func == (lhs: ChatSession, rhs: ChatSession) -> Bool {
+        lhs.id == rhs.id &&
+        lhs.description == rhs.description &&
+        lhs.messageCount == rhs.messageCount &&
+        lhs.updatedAt == rhs.updatedAt
     }
 
     // Computed properties for UI display

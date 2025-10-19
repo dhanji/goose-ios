@@ -55,7 +55,6 @@ class ContinuousVoiceManager: ObservableObject {
     private let silenceThreshold: TimeInterval = 1.5
     
     // Audio feedback
-    private let hapticFeedback = UIImpactFeedbackGenerator(style: .light)
     
     // Callback for sending messages
     var onSubmitMessage: ((String) -> Void)?
@@ -97,14 +96,12 @@ class ContinuousVoiceManager: ObservableObject {
     func startVoiceMode() {
         isVoiceMode = true
         playSound(.modeSwitch)
-        hapticFeedback.impactOccurred()
         startListening()
     }
     
     func stopVoiceMode() {
         isVoiceMode = false
         playSound(.modeSwitch)
-        hapticFeedback.impactOccurred()
         stopListening()
         stopSpeaking()
         state = .idle
@@ -289,7 +286,6 @@ class ContinuousVoiceManager: ObservableObject {
         stopListening()
         state = .processing
         playSound(.submit)
-        hapticFeedback.impactOccurred()
         
         // Send the message via callback
         onSubmitMessage?(message)
@@ -341,7 +337,6 @@ class ContinuousVoiceManager: ObservableObject {
         state = .error
         errorMessage = error.localizedDescription
         playSound(.error)
-        hapticFeedback.impactOccurred()
         
         print("❌ Voice error: \(error)")
         

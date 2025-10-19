@@ -98,9 +98,6 @@ class EnhancedVoiceManager: ObservableObject {
     private var hasDetectedSpeech = false
     private let silenceThreshold: TimeInterval = 1.5
     
-    // Audio feedback
-    private let hapticFeedback = UIImpactFeedbackGenerator(style: .light)
-    
     // Callback for sending messages
     var onSubmitMessage: ((String) -> Void)?
     
@@ -132,12 +129,10 @@ class EnhancedVoiceManager: ObservableObject {
             
         case .audio:
             playSound(.modeSwitch)
-            hapticFeedback.impactOccurred()
             startListening()
             
         case .fullAudio:
             playSound(.modeSwitch)
-            hapticFeedback.impactOccurred()
             startListening()
         }
     }
@@ -344,7 +339,6 @@ class EnhancedVoiceManager: ObservableObject {
         stopListening()
         state = .processing
         playSound(.submit)
-        hapticFeedback.impactOccurred()
         
         // Send the message via callback
         onSubmitMessage?(message)
@@ -404,7 +398,6 @@ class EnhancedVoiceManager: ObservableObject {
         state = .error
         errorMessage = error.localizedDescription
         playSound(.error)
-        hapticFeedback.impactOccurred()
         
         print("❌ Voice error: \(error)")
         
@@ -499,7 +492,6 @@ struct ThreeStateVoiceSlider: View {
     private let trackWidth: CGFloat = 120  // Much more compact
     private let thumbSize: CGFloat = 26
     private let trackHeight: CGFloat = 28
-    private let hapticFeedback = UIImpactFeedbackGenerator(style: .light)
     
     var body: some View {
         // Compact slider without labels
@@ -562,7 +554,6 @@ struct ThreeStateVoiceSlider: View {
                             let absolutePosition = thumbOffset + dragOffset
                             let newMode = modeForPosition(absolutePosition)
                             if newMode != manager.voiceMode {
-                                hapticFeedback.impactOccurred()
                             }
                         }
                         .onEnded { value in
@@ -579,7 +570,6 @@ struct ThreeStateVoiceSlider: View {
         }
         .frame(width: trackWidth, height: trackHeight)
         .onAppear {
-            hapticFeedback.prepare()
         }
     }
     
