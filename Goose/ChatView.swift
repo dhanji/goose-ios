@@ -360,10 +360,10 @@ struct ChatView: View {
                         sessionId: sessionId, provider: provider, model: model)
                     print("✅ PROVIDER UPDATED FOR SESSION: \(sessionId)")
 
-                    // Extend the system prompt with iOS-specific context
-                    print("🔧 EXTENDING PROMPT FOR SESSION: \(sessionId)")
-                    try await apiService.extendSystemPrompt(sessionId: sessionId)
-                    print("✅ PROMPT EXTENDED FOR SESSION: \(sessionId)")
+                    // Apply server-side prompts (desktop_prompt.md + recipe if present)
+                    print("🔧 UPDATING AGENT FROM SESSION: \(sessionId)")
+                    try await apiService.updateFromSession(sessionId: sessionId)
+                    print("✅ AGENT UPDATED FROM SESSION: \(sessionId)")
 
                     // Load enabled extensions just like desktop does
                     print("🔧 LOADING ENABLED EXTENSIONS FOR SESSION: \(sessionId)")
@@ -951,10 +951,10 @@ struct ChatView: View {
                     sessionId: resumedSessionId, provider: provider, model: model)
                 print("✅ PROVIDER UPDATED FOR RESUMED SESSION: \(resumedSessionId)")
 
-                // Extend the system prompt with iOS-specific context (same as new session)
-                print("🔧 EXTENDING PROMPT FOR RESUMED SESSION: \(resumedSessionId)")
-                try await apiService.extendSystemPrompt(sessionId: resumedSessionId)
-                print("✅ PROMPT EXTENDED FOR RESUMED SESSION: \(resumedSessionId)")
+                // Apply server-side prompts (desktop_prompt.md + recipe if present)
+                print("🔧 UPDATING AGENT FROM SESSION: \(resumedSessionId)")
+                try await apiService.updateFromSession(sessionId: resumedSessionId)
+                print("✅ AGENT UPDATED FROM SESSION: \(resumedSessionId)")
 
                 // Load enabled extensions just like desktop does (same as new session)
                 print("🔧 LOADING ENABLED EXTENSIONS FOR RESUMED SESSION: \(resumedSessionId)")

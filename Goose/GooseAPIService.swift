@@ -225,83 +225,41 @@ class GooseAPIService: ObservableObject {
         }
     }
 
-    // MARK: - System Prompt Extension
-    func extendSystemPrompt(sessionId: String) async throws {
-        do {
-            guard let url = URL(string: "\(self.baseURL)/agent/prompt") else {
-                throw APIError.invalidURL
-            }
 
-            let iOSPrompt: String
 
-            if isTrialMode {
-                // Demo mode prompt - limited functionality
-                iOSPrompt = """
-
-                    You are being accessed through the Goose iOS application from a mobile handset, in a trial mode with limited capability.
-
-                    Some extensions are builtin, such as Developer and Memory.
-                    When asked to code, write files, or run commands, IMMEDIATELY enable the Developer extension using platform__manage_extensions.
-
-                    it is critical you are always brief in your final replies so they can easily read on mobile handset.
-
-                    You can:
-                    - Answer questions and provide information
-                    - Explain concepts and provide guidance
-                    - critical: If you wish to do any work, make a tmp directory and work in there
-
-                    Be helpful and informative, but always remind them to connect their own agent for full functionality.
-
-                    """
-            } else {
-                // Full mode prompt - all features available
-                iOSPrompt = """
-                    You are being accessed through the Goose iOS application from a mobile handset.
-
-                    Some extensions are builtin, such as Developer and Memory.
-                    When asked to code, write files, or run commands, IMMEDIATELY enable the Developer extension using platform__manage_extensions.
-                    DO NOT explain what you're going to do first - just enable Developer and start working.
-
-                    it is critical you are always brief in your final replies so they can easily read on mobile handset.
-                    """
-            }
-
-            var request = URLRequest(url: url)
-            request.httpMethod = "POST"
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            request.setValue(self.secretKey, forHTTPHeaderField: "X-Secret-Key")
-
-            let body: [String: Any] = [
-                "session_id": sessionId,
-                "extension": iOSPrompt,
-            ]
-            request.httpBody = try JSONSerialization.data(withJSONObject: body)
-
-            // Debug logging
-            if let bodyData = request.httpBody,
-                let bodyString = String(data: bodyData, encoding: .utf8)
-            {
-                print("📤 Sending to /agent/prompt:")
-                print(bodyString)
-            }
-
-            let (data, response) = try await URLSession.shared.data(for: request)
-
-            guard let httpResponse = response as? HTTPURLResponse else {
-                throw APIError.invalidResponse
-            }
-
-            if httpResponse.statusCode != 200 {
-                let errorBody = String(data: data, encoding: .utf8) ?? "No error details"
-                throw APIError.httpError(httpResponse.statusCode, errorBody)
-            }
-
-            print("✅ System prompt extended for iOS context")
+    // MARK: - Agent Configuration
+    func updateFromSession(sessionId: String) async throws {
+        guard let url = URL(string: "\(self.baseURL)/agent/update_from_session") else {
+            throw APIError.invalidURL
         }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(self.secretKey, forHTTPHeaderField: "X-Secret-Key")
+
+        let body: [String: Any] = ["session_id": sessionId]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+
+        if httpResponse.statusCode != 200 {
+            let errorBody = String(data: data, encoding: .utf8) ?? "No error details"
+            throw APIError.httpError(httpResponse.statusCode, errorBody)
+        }
+
+        print("✅ Updated agent from session (applied server-side prompts)")
     }
 
     // MARK: - Config Management
     func readConfigValue(key: String, isSecret: Bool = false) async -> String? {
+        let startTime = Date()
+        print("⏱️ [PERF] readConfigValue(\(key)) started")
+        
         guard let url = URL(string: "\(baseURL)/config/read") else {
             print("⚠️ Invalid URL for config read")
             return nil
@@ -320,6 +278,8 @@ class GooseAPIService: ObservableObject {
         do {
             request.httpBody = try JSONSerialization.data(withJSONObject: body)
             let (data, response) = try await URLSession.shared.data(for: request)
+            let elapsed = Date().timeIntervalSince(startTime)
+            print("⏱️ [PERF] readConfigValue(\(key)) completed in \(String(format: "%.2f", elapsed))s")
 
             guard let httpResponse = response as? HTTPURLResponse else {
                 print("⚠️ Invalid response reading config")
@@ -478,6 +438,9 @@ class GooseAPIService: ObservableObject {
 
     // MARK: - Sessions Management
     func fetchInsights() async -> SessionInsights? {
+        let startTime = Date()
+        print("⏱️ [PERF] fetchInsights() started")
+        
         // In trial mode, return mock insights
         if isTrialMode {
             return SessionInsights(totalSessions: 5, totalTokens: 450_000_000)
@@ -493,6 +456,8 @@ class GooseAPIService: ObservableObject {
 
         do {
             let (data, response) = try await URLSession.shared.data(for: request)
+            let elapsed = Date().timeIntervalSince(startTime)
+            print("⏱️ [PERF] fetchInsights() completed in \(String(format: "%.2f", elapsed))s")
 
             guard let httpResponse = response as? HTTPURLResponse else {
                 print("🚨 Invalid response when fetching insights")
@@ -515,6 +480,9 @@ class GooseAPIService: ObservableObject {
     }
     
     func fetchSessions() async -> [ChatSession] {
+        let startTime = Date()
+        print("⏱️ [PERF] fetchSessions() started")
+        
         // In trial mode, return mock sessions
         if isTrialMode {
             return getMockSessions()
@@ -530,6 +498,8 @@ class GooseAPIService: ObservableObject {
 
         do {
             let (data, response) = try await URLSession.shared.data(for: request)
+            let elapsed = Date().timeIntervalSince(startTime)
+            print("⏱️ [PERF] fetchSessions() completed in \(String(format: "%.2f", elapsed))s")
 
             guard let httpResponse = response as? HTTPURLResponse else {
                 print("🚨 Invalid response when fetching sessions")

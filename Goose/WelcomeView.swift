@@ -361,18 +361,24 @@ struct WelcomeView: View {
                 _ = await GooseAPIService.shared.fetchSessions()
             }
         } else {
-            // No cache, need to fetch
-            isLoadingSessions = true
-            
-            // Fetch insights and sessions in parallel
-            async let insightsTask = GooseAPIService.shared.fetchInsights()
-            async let sessionsTask = GooseAPIService.shared.fetchSessions()
-            
-            let (_, sessions) = await (insightsTask, sessionsTask)
-            
+            // No cache - fetch in background without blocking UI
+            // Let empty state show while loading
             await MainActor.run {
-                recentSessions = Array(sessions.prefix(30))
-                isLoadingSessions = false
+                isLoadingSessions = false // Don't block UI with spinner
+            }
+            
+            // Fetch sessions in background, update when ready
+            Task.detached(priority: .userInitiated) {
+                let sessions = await GooseAPIService.shared.fetchSessions()
+                
+                await MainActor.run {
+                    self.recentSessions = Array(sessions.prefix(30))
+                }
+            }
+            
+            // Also fetch insights but don't wait for it
+            Task.detached(priority: .background) {
+                _ = await GooseAPIService.shared.fetchInsights()
             }
         }
     }
