@@ -1,0 +1,9 @@
+{
+  "name": "goose-ios-utils",
+  "version": "1.0.0",
+  "description": "Utilities for Goose iOS development",
+  "private": true,
+  "dependencies": {
+    "ws": "^8.18.3"
+  }
+}
