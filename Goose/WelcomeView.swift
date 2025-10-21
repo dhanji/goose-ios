@@ -295,6 +295,12 @@ struct WelcomeView: View {
             Task {
                 await loadRecentSessions()
             }
+            
+            // Update trial mode card visibility when settings change
+            // This ensures the banner shows immediately when switching to trial mode
+            withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                showTrialModeCard = apiService.isTrialMode
+            }
         }
     }
     
