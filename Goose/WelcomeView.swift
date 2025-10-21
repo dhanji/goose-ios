@@ -8,6 +8,7 @@ struct WelcomeView: View {
     var onStartChat: (String) -> Void
     var onSessionSelect: (String) -> Void
     var cachedSessions: [ChatSession] = []  // Pass in cached sessions from ContentView
+    var onLoadMore: () async -> Void = {}  // Callback to load more sessions
     
     // Voice features - shared with ChatView
     @ObservedObject var voiceManager: EnhancedVoiceManager
@@ -23,6 +24,8 @@ struct WelcomeView: View {
     @State private var visibleSessionsCount = 0
     @State private var showTrialModeCard = false
     @State private var currentDaysOffset: Int = 0 // Track current day being viewed in NodeMatrix
+    @State private var lastLoadTriggeredAtOffset: Int = 0  // Track last load to prevent duplicates
+    @State private var maxDaysToLoad: Int = 90  // Only load sessions from last 90 days
     
     // Session card state
     @State private var selectedSession: ChatSession? = nil
@@ -98,6 +101,24 @@ struct WelcomeView: View {
                                         },
                                         onDayChange: { daysOffset in
                                             currentDaysOffset = daysOffset
+                                            
+                                            // Smart loading: Only load if we need more sessions
+                                            // 1. Check if we've moved significantly (7+ days from last load)
+                                            // 2. Check if we're within the 90-day boundary
+                                            // 3. Check if we have more sessions to load
+                                            let daysSinceLastLoad = abs(daysOffset - lastLoadTriggeredAtOffset)
+                                            
+                                            if daysOffset > 7 && 
+                                               daysOffset <= maxDaysToLoad &&
+                                               daysSinceLastLoad >= 7 &&
+                                               !cachedSessions.isEmpty {
+                                                // Update the trigger point to prevent immediate re-triggers
+                                                lastLoadTriggeredAtOffset = daysOffset
+                                                
+                                                Task {
+                                                    await onLoadMore()
+                                                }
+                                            }
                                         },
                                         showDraftNode: isInputFocused && focusedNodeSession == nil
                                     )
@@ -302,6 +323,10 @@ struct WelcomeView: View {
                 showTrialModeCard = apiService.isTrialMode
             }
         }
+        .onChange(of: cachedSessions) { newSessions in
+            // Update recentSessions when cachedSessions changes (e.g., from sidebar load more)
+            recentSessions = newSessions
+        }
     }
     
     // Handle message submission
@@ -357,7 +382,7 @@ struct WelcomeView: View {
         // Use cached sessions immediately if available
         if !cachedSessions.isEmpty {
             await MainActor.run {
-                recentSessions = Array(cachedSessions.prefix(30))
+                recentSessions = cachedSessions
                 isLoadingSessions = false
             }
             
@@ -378,7 +403,7 @@ struct WelcomeView: View {
                 let sessions = await GooseAPIService.shared.fetchSessions()
                 
                 await MainActor.run {
-                    self.recentSessions = Array(sessions.prefix(30))
+                    self.recentSessions = sessions
                 }
             }
             

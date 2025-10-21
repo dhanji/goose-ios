@@ -14,6 +14,9 @@ struct SidebarView: View {
     @Binding var cachedSessions: [ChatSession]
     let onSessionSelect: (String) -> Void
     let onNewSession: () -> Void
+    let onLoadMore: () async -> Void
+    let isLoadingMore: Bool
+    let hasMoreSessions: Bool
     
     // Dynamic sidebar width based on device
     private var sidebarWidth: CGFloat {
@@ -28,6 +31,58 @@ struct SidebarView: View {
     // Check if we're on iPad
     private var isIPad: Bool {
         UIDevice.current.userInterfaceIdiom == .pad
+    }
+    
+    // Group sessions by date
+    private var groupedSessions: [(String, [ChatSession])] {
+        let calendar = Calendar.current
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        
+        // Group sessions by date
+        var groups: [Date: [ChatSession]] = [:]
+        
+        for session in cachedSessions {
+            guard let sessionDate = formatter.date(from: session.updatedAt) else {
+                continue
+            }
+            
+            let startOfDay = calendar.startOfDay(for: sessionDate)
+            
+            if groups[startOfDay] == nil {
+                groups[startOfDay] = []
+            }
+            groups[startOfDay]?.append(session)
+        }
+        
+        // Sort groups by date (newest first) and format labels
+        let sortedGroups = groups.sorted { $0.key > $1.key }
+        
+        return sortedGroups.map { date, sessions in
+            let label = formatDateHeader(date)
+            let sortedSessions = sessions.sorted { s1, s2 in
+                guard let date1 = formatter.date(from: s1.updatedAt),
+                      let date2 = formatter.date(from: s2.updatedAt) else {
+                    return false
+                }
+                return date1 > date2
+            }
+            return (label, sortedSessions)
+        }
+    }
+    
+    private func formatDateHeader(_ date: Date) -> String {
+        let calendar = Calendar.current
+        
+        if calendar.isDateInToday(date) {
+            return "TODAY"
+        } else if calendar.isDateInYesterday(date) {
+            return "YESTERDAY"
+        } else {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "EEEE, MMM d"
+            return formatter.string(from: date).uppercased()
+        }
     }
 
     var body: some View {
@@ -125,18 +180,56 @@ struct SidebarView: View {
                                     .frame(height: scrollGeometry.size.height * 0.3)
                             }
 
-                            ForEach(cachedSessions)
- { session in
-                                SessionRowView(session: session)
-                                    .onTapGesture {
-                                        onSessionSelect(session.id)
-                                        withAnimation(.easeInOut(duration: 0.3)) {
-                                            isShowing = false
+                            // Grouped sessions with date headers
+                            ForEach(groupedSessions, id: \.0) { dateLabel, sessions in
+                                // Date section header
+                                DateSectionHeader(label: dateLabel)
+                                
+                                // Sessions for this date
+                                ForEach(sessions) { session in
+                                    SessionRowView(session: session)
+                                        .onTapGesture {
+                                            onSessionSelect(session.id)
+                                            withAnimation(.easeInOut(duration: 0.3)) {
+                                                isShowing = false
+                                            }
+                                        }
+                                    Divider()
+                                        .background(Color.gray.opacity(0.2))
+                                        .padding(.leading)
+                                }
+                            }
+                            
+                            // Load more indicator at the bottom
+                            if hasMoreSessions {
+                                Button(action: {
+                                    Task {
+                                        await onLoadMore()
+                                    }
+                                }) {
+                                    HStack(spacing: 8) {
+                                        if isLoadingMore {
+                                            ProgressView()
+                                                .progressViewStyle(CircularProgressViewStyle())
+                                                .scaleEffect(0.8)
+                                            Text("Loading...")
+                                                .font(.system(size: 14))
+                                        } else {
+                                            Image(systemName: "arrow.down.circle")
+                                                .font(.system(size: 14))
+                                            Text("Load More Sessions")
+                                                .font(.system(size: 14))
                                         }
                                     }
-                                Divider()
-                                    .background(Color.gray.opacity(0.2))
-                                    .padding(.leading)
+                                    .foregroundColor(.blue)
+                                    .padding(.vertical, 12)
+                                    .padding(.horizontal, 16)
+                                    .frame(maxWidth: .infinity)
+                                }
+                                .buttonStyle(.plain)
+                                .disabled(isLoadingMore)
+                                .accessibilityLabel("Load more sessions")
+                                .accessibilityHint("Loads the next batch of sessions")
                             }
                         }
                     }
@@ -188,6 +281,26 @@ struct SidebarView: View {
     }
 }
 
+// MARK: - Date Section Header
+struct DateSectionHeader: View {
+    let label: String
+    
+    var body: some View {
+        HStack {
+            Text(label)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(.secondary)
+                .tracking(0.5)
+            
+            Spacer()
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 16)
+        .padding(.bottom, 8)
+        .background(Color(.systemBackground))
+    }
+}
+
 // MARK: - Session Row View
 struct SessionRowView: View {
     let session: ChatSession
@@ -203,7 +316,7 @@ struct SessionRowView: View {
             Spacer()
             
             // Time ago
-            Text(formatDate(session.timestamp))
+            Text(formatTime(session.updatedAt))
                 .font(.system(size: 13))
                 .foregroundColor(.secondary)
             
@@ -225,9 +338,17 @@ struct SessionRowView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func formatDate(_ date: Date) -> String {
-        let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .short
-        return formatter.localizedString(for: date, relativeTo: Date())
+    private func formatTime(_ isoDate: String) -> String {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        
+        guard let date = formatter.date(from: isoDate) else {
+            return "Unknown"
+        }
+        
+        // Just show time for same-day sessions
+        let timeFormatter = DateFormatter()
+        timeFormatter.timeStyle = .short
+        return timeFormatter.string(from: date)
     }
 }

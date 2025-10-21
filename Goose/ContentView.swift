@@ -10,6 +10,51 @@ struct ContentView: View {
     @State private var selectedSessionId: String?
     @State private var sessionName: String = "New Session"
     @State private var cachedSessions: [ChatSession] = [] // Preloaded sessions
+    @State private var isLoadingMore: Bool = false
+    @State private var hasMoreSessions: Bool = true
+    private let sessionsPerPage: Int = 30
+    private let maxDaysBack: Int = 90  // Only load sessions from last 90 days
+
+    // MARK: - Load More Sessions
+    func loadMoreSessions() async {
+        guard !isLoadingMore && hasMoreSessions else { return }
+        
+        await MainActor.run {
+            isLoadingMore = true
+        }
+        
+        let allSessions = await GooseAPIService.shared.fetchSessions()
+        
+        await MainActor.run {
+            // Filter sessions to only include those within the date boundary
+            let calendar = Calendar.current
+            let cutoffDate = calendar.date(byAdding: .day, value: -maxDaysBack, to: Date()) ?? Date()
+            
+            let formatter = ISO8601DateFormatter()
+            formatter.formatOptions = [.withInternetDateTime]
+            
+            let recentSessions = allSessions.filter { session in
+                guard let sessionDate = formatter.date(from: session.updatedAt) else {
+                    return false
+                }
+                return sessionDate >= cutoffDate
+            }
+            
+            let currentCount = cachedSessions.count
+            let nextBatch = Array(recentSessions.prefix(currentCount + sessionsPerPage))
+            
+            if nextBatch.count > currentCount {
+                self.cachedSessions = nextBatch
+                self.hasMoreSessions = recentSessions.count > nextBatch.count
+                print("✅ Loaded \(nextBatch.count - currentCount) more sessions (total: \(nextBatch.count), filtered to last \(maxDaysBack) days)")
+            } else {
+                self.hasMoreSessions = false
+                print("✅ No more sessions to load (reached \(maxDaysBack)-day boundary or end of sessions)")
+            }
+            
+            isLoadingMore = false
+        }
+    }
     @EnvironmentObject var configurationHandler: ConfigurationHandler
     
     // Shared voice manager across WelcomeView and ChatView
@@ -63,6 +108,9 @@ struct ContentView: View {
                                 }
                             },
                                 cachedSessions: cachedSessions,  // Pass cached sessions
+                                onLoadMore: {  // NEW: Pass load more callback for NodeMatrix
+                                    await loadMoreSessions()
+                                },
                                 voiceManager: sharedVoiceManager
                             )
                             .navigationBarHidden(true)
@@ -119,15 +167,16 @@ struct ContentView: View {
                             Task {
                                 await preloadSessions()
                             }
-                        }
+                        },
+                        onLoadMore: {
+                            await loadMoreSessions()
+                        },
+                        isLoadingMore: isLoadingMore,
+                        hasMoreSessions: hasMoreSessions
                     )
                     .transition(.move(edge: .leading))
-                    .onAppear {
-                        // Refresh sessions when sidebar opens
-                        Task {
-                            await preloadSessions()
-                        }
-                    }
+                    // Note: Removed onAppear preload to preserve loaded sessions
+                    // Sessions are loaded on app launch and via "Load More" button
                 }
             }
             .overlay(alignment: .top) {
@@ -176,10 +225,25 @@ struct ContentView: View {
     private func preloadSessions() async {
         print("📥 Attempting to preload sessions...")
         let fetchedSessions = await GooseAPIService.shared.fetchSessions()
+        
         await MainActor.run {
-            // Limit to first 10 sessions for performance
-            self.cachedSessions = Array(fetchedSessions.prefix(10))
-            print("✅ Preloaded \(self.cachedSessions.count) sessions")
+            // Filter sessions to only include those within the date boundary
+            let calendar = Calendar.current
+            let cutoffDate = calendar.date(byAdding: .day, value: -maxDaysBack, to: Date()) ?? Date()
+            
+            let formatter = ISO8601DateFormatter()
+            formatter.formatOptions = [.withInternetDateTime]
+            
+            let recentSessions = fetchedSessions.filter { session in
+                guard let sessionDate = formatter.date(from: session.updatedAt) else {
+                    return false
+                }
+                return sessionDate >= cutoffDate
+            }
+            
+            self.cachedSessions = Array(recentSessions.prefix(sessionsPerPage))
+            self.hasMoreSessions = recentSessions.count > sessionsPerPage
+            print("✅ Preloaded \(self.cachedSessions.count) sessions (filtered to last \(maxDaysBack) days)")
             if self.cachedSessions.isEmpty {
                 print("⚠️ No sessions preloaded - server may not be connected or no sessions exist")
             }
@@ -212,6 +276,7 @@ struct ContentView: View {
                 }
             }
         }
+
     }
 }
 
@@ -321,6 +386,7 @@ struct ChatViewWithInitialMessage: View {
                 }
             }
     }
+
 }
 
 #Preview {
