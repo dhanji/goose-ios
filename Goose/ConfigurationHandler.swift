@@ -1,6 +1,249 @@
 import Foundation
 import UIKit
 
+// MARK: - Agent Configuration Model
+struct AgentConfiguration: Identifiable, Codable, Equatable {
+    let id: String
+    var name: String?  // Optional custom name
+    let url: String
+    let secret: String
+    var lastUsed: Date
+    
+    init(id: String = UUID().uuidString, name: String? = nil, url: String, secret: String, lastUsed: Date = Date()) {
+        self.id = id
+        self.name = name
+        self.url = url
+        self.secret = secret
+        self.lastUsed = lastUsed
+    }
+    
+    /// Generate a default name based on the URL pattern
+    static func defaultName(for url: String) -> String? {
+        let lowercaseURL = url.lowercased()
+        
+        // Check for demo-goosed pattern
+        if lowercaseURL.contains("demo-goosed") {
+            return "Trial"
+        }
+        
+        // Check for cloudflare-tunnel-proxy pattern
+        if lowercaseURL.contains("cloudflare-tunnel-proxy") {
+            return "Desktop"
+        }
+        
+        // No default name for other patterns
+        return nil
+    }
+    
+    /// Display name for the agent (custom name or formatted URL)
+    var displayName: String {
+        if let name = name, !name.isEmpty {
+            return name
+        }
+        // Format URL for display (remove protocol and port)
+        var formatted = url
+        formatted = formatted.replacingOccurrences(of: "https://", with: "")
+        formatted = formatted.replacingOccurrences(of: "http://", with: "")
+        formatted = formatted.replacingOccurrences(of: ":443", with: "")
+        
+        // Truncate if too long
+        if formatted.count > 30 {
+            return String(formatted.prefix(27)) + "..."
+        }
+        return formatted
+    }
+    
+    /// Subtitle showing the URL (only shown when custom name is set)
+    var subtitle: String? {
+        guard name != nil && !name!.isEmpty else { return nil }
+        var formatted = url
+        formatted = formatted.replacingOccurrences(of: "https://", with: "")
+        formatted = formatted.replacingOccurrences(of: "http://", with: "")
+        formatted = formatted.replacingOccurrences(of: ":443", with: "")
+        return formatted
+    }
+}
+
+// MARK: - Agent Storage Manager
+class AgentStorage: ObservableObject {
+    static let shared = AgentStorage()
+    
+    @Published var savedAgents: [AgentConfiguration] = []
+    @Published var currentAgentId: String?
+    
+    private let agentsKey = "saved_servers"  // Keep old key for backwards compatibility
+    private let currentAgentKey = "current_server_id"  // Keep old key for backwards compatibility
+    
+    private init() {
+        loadAgents()
+        loadCurrentAgentId()
+        ensureCurrentAgentInList()
+    }
+    
+    /// Ensure the current UserDefaults configuration is in the agent list
+    func ensureCurrentAgentInList() {
+        let currentURL = UserDefaults.standard.string(forKey: "goose_base_url") ?? ""
+        let currentSecret = UserDefaults.standard.string(forKey: "goose_secret_key") ?? ""
+        
+        // Skip if no valid configuration
+        guard !currentURL.isEmpty, !currentSecret.isEmpty else { return }
+        
+        // Check if this agent already exists
+        if let existing = savedAgents.first(where: { $0.url == currentURL && $0.secret == currentSecret }) {
+            // Set it as current
+            currentAgentId = existing.id
+            saveCurrentAgentId()
+        } else {
+            // Add the current configuration with a default name if URL matches a pattern
+            let defaultName = AgentConfiguration.defaultName(for: currentURL)
+            let agent = AgentConfiguration(name: defaultName, url: currentURL, secret: currentSecret)
+            savedAgents.insert(agent, at: 0)
+            currentAgentId = agent.id
+            saveAgents()
+            saveCurrentAgentId()
+        }
+    }
+    
+    /// Load saved agents from UserDefaults
+    private func loadAgents() {
+        guard let data = UserDefaults.standard.data(forKey: agentsKey),
+              let agents = try? JSONDecoder().decode([AgentConfiguration].self, from: data) else {
+            savedAgents = []
+            return
+        }
+        // Sort by last used (most recent first)
+        savedAgents = agents.sorted { $0.lastUsed > $1.lastUsed }
+    }
+    
+    /// Save agents to UserDefaults
+    private func saveAgents() {
+        guard let data = try? JSONEncoder().encode(savedAgents) else { return }
+        UserDefaults.standard.set(data, forKey: agentsKey)
+        UserDefaults.standard.synchronize()
+    }
+    
+    /// Load current agent ID
+    private func loadCurrentAgentId() {
+        currentAgentId = UserDefaults.standard.string(forKey: currentAgentKey)
+    }
+    
+    /// Save current agent ID
+    private func saveCurrentAgentId() {
+        if let id = currentAgentId {
+            UserDefaults.standard.set(id, forKey: currentAgentKey)
+        } else {
+            UserDefaults.standard.removeObject(forKey: currentAgentKey)
+        }
+        UserDefaults.standard.synchronize()
+    }
+    
+    /// Add or update an agent configuration
+    func saveAgent(_ agent: AgentConfiguration) {
+        // Check if agent already exists (by URL and secret)
+        if let index = savedAgents.firstIndex(where: { $0.url == agent.url && $0.secret == agent.secret }) {
+            // Update existing agent
+            var updated = savedAgents[index]
+            updated.name = agent.name
+            updated.lastUsed = Date()
+            savedAgents[index] = updated
+            
+            // If this is the current agent, update the ID
+            if currentAgentId == savedAgents[index].id {
+                currentAgentId = updated.id
+                saveCurrentAgentId()
+            }
+        } else {
+            // Add new agent
+            var newAgent = agent
+            newAgent.lastUsed = Date()
+            savedAgents.insert(newAgent, at: 0)
+        }
+        
+        // Sort by last used
+        savedAgents.sort { $0.lastUsed > $1.lastUsed }
+        saveAgents()
+    }
+    
+    /// Get current agent configuration
+    var currentAgent: AgentConfiguration? {
+        guard let id = currentAgentId else { return nil }
+        return savedAgents.first { $0.id == id }
+    }
+    
+    /// Switch to a saved agent
+    func switchToAgent(_ agent: AgentConfiguration) {
+        // Update last used
+        if let index = savedAgents.firstIndex(where: { $0.id == agent.id }) {
+            savedAgents[index].lastUsed = Date()
+            saveAgents()
+        }
+        
+        // Set as current
+        currentAgentId = agent.id
+        saveCurrentAgentId()
+        
+        // Apply to UserDefaults
+        UserDefaults.standard.set(agent.url, forKey: "goose_base_url")
+        UserDefaults.standard.set(agent.secret, forKey: "goose_secret_key")
+        UserDefaults.standard.synchronize()
+        
+        // Notify that configuration changed
+        NotificationCenter.default.post(name: Notification.Name("RefreshSessions"), object: nil)
+    }
+    
+    /// Delete an agent
+    func deleteAgent(_ agent: AgentConfiguration) {
+        savedAgents.removeAll { $0.id == agent.id }
+        
+        // If this was the current agent, clear current
+        if currentAgentId == agent.id {
+            currentAgentId = nil
+            saveCurrentAgentId()
+        }
+        
+        saveAgents()
+    }
+    
+    /// Get agent by current UserDefaults configuration
+    func getAgentFromCurrentDefaults() -> AgentConfiguration? {
+        let url = UserDefaults.standard.string(forKey: "goose_base_url") ?? ""
+        let secret = UserDefaults.standard.string(forKey: "goose_secret_key") ?? ""
+        
+        guard !url.isEmpty, !secret.isEmpty else { return nil }
+        
+        // Check if this matches an existing agent
+        return savedAgents.first { $0.url == url && $0.secret == secret }
+    }
+    
+    /// Mark current UserDefaults as an agent
+    func saveCurrentConfiguration(withName name: String? = nil) -> AgentConfiguration {
+        let url = UserDefaults.standard.string(forKey: "goose_base_url") ?? ""
+        let secret = UserDefaults.standard.string(forKey: "goose_secret_key") ?? ""
+        
+        // Check if this configuration already exists
+        if let existing = savedAgents.first(where: { $0.url == url && $0.secret == secret }) {
+            // Update name if provided
+            var updated = existing
+            if let name = name {
+                updated.name = name
+            }
+            updated.lastUsed = Date()
+            saveAgent(updated)
+            currentAgentId = updated.id
+            saveCurrentAgentId()
+            return updated
+        } else {
+            // Create new agent with default name if no custom name provided
+            let finalName = name ?? AgentConfiguration.defaultName(for: url)
+            let agent = AgentConfiguration(name: finalName, url: url, secret: secret)
+            saveAgent(agent)
+            currentAgentId = agent.id
+            saveCurrentAgentId()
+            return agent
+        }
+    }
+}
+
 /// Handles configuration of the app from QR codes and URLs
 class ConfigurationHandler: ObservableObject {
     static let shared = ConfigurationHandler()
@@ -9,6 +252,7 @@ class ConfigurationHandler: ObservableObject {
     @Published var configurationError: String?
     @Published var configurationSuccess = false
     @Published var isTailscaleError = false
+    @Published var showSaveAgentDialog = false
     
     private init() {}
     
@@ -104,6 +348,12 @@ class ConfigurationHandler: ObservableObject {
                     self.configurationError = nil
                     print("✅ Configuration applied successfully!")
                     
+                    // Ensure the new configuration is in the agent list
+                    AgentStorage.shared.ensureCurrentAgentInList()
+                    
+                    // Notify that configuration changed - ADDED THIS FIX
+                    NotificationCenter.default.post(name: Notification.Name("RefreshSessions"), object: nil)
+                    
                     // Clear success flag after 3 seconds
                     DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
                         self.configurationSuccess = false
@@ -160,5 +410,22 @@ class ConfigurationHandler: ObservableObject {
         )
         applyConfiguration(config)
         print("🎯 Reset to trial mode")
+    }
+    
+    /// Save current configuration as an agent
+    func saveCurrentConfigurationAsAgent(withName name: String? = nil) {
+        let agent = AgentStorage.shared.saveCurrentConfiguration(withName: name)
+        print("💾 Saved agent configuration: \(agent.displayName)")
+    }
+    
+    /// Switch to a saved agent configuration
+    func switchToAgent(_ agent: AgentConfiguration) {
+        AgentStorage.shared.switchToAgent(agent)
+        print("🔄 Switched to agent: \(agent.displayName)")
+        
+        // Test the connection
+        Task {
+            _ = await GooseAPIService.shared.testConnection()
+        }
     }
 }

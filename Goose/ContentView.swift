@@ -112,7 +112,7 @@ struct ContentView: View {
         } else {
             // Main content with sidebar (following PR pattern)
             ZStack(alignment: .leading) {
-                // Main content - full height
+                // Main content - full height (stays in place)
                 GeometryReader { geometry in
                     NavigationStack {
                         if !hasActiveChat {
@@ -177,12 +177,10 @@ struct ContentView: View {
                     }
                     .frame(width: geometry.size.width, height: geometry.size.height)
                     .background(Color(UIColor.systemBackground))
-                    .offset(x: showingSidebar ? sidebarWidth : 0) // Offset content when sidebar shows
-                    .animation(.easeInOut(duration: 0.3), value: showingSidebar)
-                                    }
+                }
                 .edgesIgnoringSafeArea(.all)
                 
-                // Sidebar overlay
+                // Sidebar overlay - slides in independently
                 if showingSidebar {
                     SidebarView(
                         isShowing: $showingSidebar,
@@ -208,6 +206,8 @@ struct ContentView: View {
                         hasMoreSessions: hasMoreSessions
                     )
                     .transition(.move(edge: .leading))
+                    .animation(.easeInOut(duration: 0.25), value: showingSidebar)
+                    .zIndex(1)  // Ensure sidebar is above main content
                     // Note: Removed onAppear preload to preserve loaded sessions
                     // Sessions are loaded on app launch and via "Load More" button
                 }
@@ -413,7 +413,6 @@ struct ContentView: View {
                 }
             }
         }
-
     }
 }
 

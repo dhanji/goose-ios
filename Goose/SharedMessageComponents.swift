@@ -34,7 +34,9 @@ struct MarkdownText: View {
             // Improved streaming: only reparse if text structure changed
             if !newText.hasPrefix(previousText) {
                 // Text was modified (not appended) - full reparse needed
-                cachedAttributedText = MarkdownParser.parse(newText)
+                withAnimation(.easeOut(duration: 0.15)) {
+                    cachedAttributedText = MarkdownParser.parse(newText)
+                }
             } else if newText != previousText {
                 // Text was appended - efficient delta parsing
                 let delta = String(newText.dropFirst(previousText.count))
@@ -43,10 +45,14 @@ struct MarkdownText: View {
                     if delta.contains("**") || delta.contains("*") || delta.contains("`") || 
                        delta.contains("[") || delta.contains("#") || delta.contains("\n\n") {
                         // Markdown syntax detected - reparse to maintain formatting
-                        cachedAttributedText = MarkdownParser.parse(newText)
+                        withAnimation(.easeOut(duration: 0.15)) {
+                            cachedAttributedText = MarkdownParser.parse(newText)
+                        }
                     } else {
-                        // Plain text - just append efficiently
-                        cachedAttributedText = cached + AttributedString(delta)
+                        // Plain text - just append efficiently with smooth transition
+                        withAnimation(.easeOut(duration: 0.1)) {
+                            cachedAttributedText = cached + AttributedString(delta)
+                        }
                     }
                 } else {
                     cachedAttributedText = MarkdownParser.parse(newText)
@@ -54,6 +60,7 @@ struct MarkdownText: View {
             }
             previousText = newText
         }
+        .animation(.easeOut(duration: 0.1), value: cachedAttributedText)
     }
 }
 

@@ -662,7 +662,7 @@ struct ChatView: View {
                     // Throttle to avoid excessive scrolling during rapid updates
                     if self.shouldAutoScroll {
                         let now = Date()
-                        if now.timeIntervalSince(self.lastScrollUpdate) > 0.1 {  // Throttle to 10 updates per second
+                        if now.timeIntervalSince(self.lastScrollUpdate) > 0.05 {  // Throttle to 20 updates per second for smoother scrolling
                             self.lastScrollUpdate = now
                             self.scrollRefreshTrigger = UUID()
                         }
@@ -1305,33 +1305,14 @@ struct ChatView: View {
                     sessionIdToResume = sessionId
                 }
                 
-                // Resume the session (without loading model/extensions for browsing)
-                let (resumedSessionId, sessionMessages) = try await apiService.resumeAgent(
+                // Fetch session messages (not actually resuming yet - just loading for browsing)
+                let (fetchedSessionId, sessionMessages) = try await apiService.resumeAgent(
                     sessionId: sessionIdToResume, loadModelAndExtensions: false)
-                print("✅ SESSION RESUMED: \(resumedSessionId)")
-                print("📝 Loaded \(sessionMessages.count) messages")
-
-                // Read provider and model from config (same as new session)
-                print("🔧 READING PROVIDER AND MODEL FROM CONFIG")
-                guard let provider = await apiService.readConfigValue(key: "GOOSE_PROVIDER"),
-                    let model = await apiService.readConfigValue(key: "GOOSE_MODEL")
-                else {
-                    throw APIError.noData
-                }
-
-                print("🔧 UPDATING PROVIDER TO \(provider) WITH MODEL \(model)")
-                try await apiService.updateProvider(
-                    sessionId: resumedSessionId, provider: provider, model: model)
-                print("✅ PROVIDER UPDATED FOR RESUMED SESSION: \(resumedSessionId)")
-
-                // Apply server-side prompts (desktop_prompt.md + recipe if present)
-                print("🔧 UPDATING AGENT FROM SESSION: \(resumedSessionId)")
-                try await apiService.updateFromSession(sessionId: resumedSessionId)
-                print("✅ AGENT UPDATED FROM SESSION: \(resumedSessionId)")
-
-                // Load enabled extensions just like desktop does (same as new session)
-                print("🔧 LOADING ENABLED EXTENSIONS FOR RESUMED SESSION: \(resumedSessionId)")
-                try await apiService.loadEnabledExtensions(sessionId: resumedSessionId)
+                print("✅ SESSION MESSAGES FETCHED: \(fetchedSessionId)")
+                print("📝 Loaded \(sessionMessages.count) messages for browsing")
+                
+                // Skip provider/extensions setup for browsing - will be done on first message send
+                // This makes session loading instant (just fetch and display messages)
 
                 // Update all state on main thread at once
                 await MainActor.run {
@@ -1342,7 +1323,7 @@ struct ChatView: View {
                     toolCallMessageMap.removeAll()
 
                     // Set new state with forced UI refresh
-                    currentSessionId = resumedSessionId
+                    currentSessionId = fetchedSessionId
 
                     // Force UI refresh by clearing and setting messages
                     messages.removeAll()
@@ -1376,7 +1357,7 @@ struct ChatView: View {
                     // Check if we should start polling for live updates
                     if shouldPollForUpdates(sessionMessages) {
                         print("🔄 Session appears to be waiting for response, starting polling...")
-                        startPollingForUpdates(sessionId: resumedSessionId)
+                        startPollingForUpdates(sessionId: fetchedSessionId)
                     }
                     
                     // Mark as not activated - model/extensions will load on first message
