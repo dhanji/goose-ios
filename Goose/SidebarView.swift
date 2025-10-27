@@ -18,6 +18,11 @@ struct SidebarView: View {
     let isLoadingMore: Bool
     let hasMoreSessions: Bool
     
+    @StateObject private var agentStorage = AgentStorage.shared
+    @State private var showingRenameDialog = false
+    @State private var agentToRename: AgentConfiguration?
+    @State private var newAgentName = ""
+    
     // Dynamic sidebar width based on device
     private var sidebarWidth: CGFloat {
         let screenWidth = UIScreen.main.bounds.width
@@ -137,7 +142,7 @@ struct SidebarView: View {
                     GeometryReader { scrollGeometry in
                         ScrollView {
                             LazyVStack(spacing: 0) {
-                            // PLACEHOLDER SPACE 1 - Server status area
+                            // Agent section header
                             HStack(spacing: 12) {
                                 Image("ServerIcon")
                                     .resizable()
@@ -145,7 +150,7 @@ struct SidebarView: View {
                                     .frame(width: 13, height: 13)
                                     .foregroundColor(.primary)
                                 
-                                Text("Servers")
+                                Text("Agents")
                                     .font(.system(size: 15, weight: .medium))
                                     .foregroundColor(.primary)
                                 
@@ -156,23 +161,53 @@ struct SidebarView: View {
                             .frame(maxWidth: .infinity)
                             .background(Color(.systemBackground))
                             
-                            // PLACEHOLDER SPACE 2 - Add buttons/actions here
-                            VStack {
-                                Text("Action Buttons")
-                                    .font(.caption)
-                                    .foregroundColor(.clear) // Hidden placeholder text
+                            // Agent list
+                            if agentStorage.savedAgents.isEmpty {
+                                // Empty state
+                                VStack(spacing: 8) {
+                                    Text("No saved agents")
+                                        .font(.system(size: 14))
+                                        .foregroundColor(.secondary)
+                                    Text("Configure an agent in Settings to save it")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(.secondary)
+                                        .multilineTextAlignment(.center)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 24)
+                                .padding(.horizontal, 16)
+                            } else {
+                                ForEach(agentStorage.savedAgents) { agent in
+                                    AgentRowView(
+                                        agent: agent,
+                                        isCurrent: agentStorage.currentAgentId == agent.id,
+                                        onTap: {
+                                            // Close sidebar first for smooth UX, then switch agent
+                                            withAnimation(.easeInOut(duration: 0.25)) {
+                                                isShowing = false
+                                            }
+                                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.26) {
+                                                ConfigurationHandler.shared.switchToAgent(agent)
+                                            }
+                                        },
+                                        onRename: {
+                                            agentToRename = agent
+                                            newAgentName = agent.name ?? ""
+                                            showingRenameDialog = true
+                                        },
+                                        onDelete: {
+                                            agentStorage.deleteAgent(agent)
+                                        }
+                                    )
+                                    Divider()
+                                        .background(Color.gray.opacity(0.2))
+                                        .padding(.leading)
+                                }
                             }
-                            .frame(height: 100)
-                            .frame(maxWidth: .infinity)
-                            .background(Color(.systemBackground))
                             
-                            // Additional spacer below action buttons
+                            // Spacer below agent list
                             Color.clear
-                                .frame(height: 48)
-                            
-                            // Spacer to push sessions further down
-                            Color.clear
-                                .frame(height: 48)
+                                .frame(height: 24)
                             
                             // Push sessions to bottom if fewer than 5
                             if cachedSessions.count < 5 {
@@ -278,6 +313,24 @@ struct SidebarView: View {
                 }
             }
         }
+        .alert("Rename Agent", isPresented: $showingRenameDialog) {
+            TextField("Agent Name", text: $newAgentName)
+            Button("Cancel", role: .cancel) {
+                agentToRename = nil
+                newAgentName = ""
+            }
+            Button("Save") {
+                if let agent = agentToRename {
+                    var updated = agent
+                    updated.name = newAgentName.isEmpty ? nil : newAgentName
+                    agentStorage.saveAgent(updated)
+                }
+                agentToRename = nil
+                newAgentName = ""
+            }
+        } message: {
+            Text("Enter a name for this agent")
+        }
     }
 }
 
@@ -350,5 +403,67 @@ struct SessionRowView: View {
         let timeFormatter = DateFormatter()
         timeFormatter.timeStyle = .short
         return timeFormatter.string(from: date)
+    }
+}
+
+// MARK: - Agent Row View
+struct AgentRowView: View {
+    let agent: AgentConfiguration
+    let isCurrent: Bool
+    let onTap: () -> Void
+    let onRename: () -> Void
+    let onDelete: () -> Void
+    
+    @State private var showingOptions = false
+    
+    var body: some View {
+        Button(action: onTap) {
+            HStack(spacing: 12) {
+                // Current indicator
+                Circle()
+                    .fill(isCurrent ? Color.green : Color.clear)
+                    .frame(width: 8, height: 8)
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(agent.displayName)
+                        .font(.system(size: 15, weight: isCurrent ? .semibold : .medium))
+                        .lineLimit(1)
+                        .foregroundColor(.primary)
+                    
+                    if let subtitle = agent.subtitle {
+                        Text(subtitle)
+                            .font(.system(size: 12))
+                            .foregroundColor(.secondary)
+                            .lineLimit(1)
+                    }
+                }
+                
+                Spacer()
+                
+                // Options button
+                Button(action: {
+                    showingOptions = true
+                }) {
+                    Image(systemName: "ellipsis")
+                        .font(.system(size: 14))
+                        .foregroundColor(.secondary)
+                        .frame(width: 32, height: 32)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .confirmationDialog("Agent Options", isPresented: $showingOptions, titleVisibility: .visible) {
+            Button("Rename") {
+                onRename()
+            }
+            Button("Delete", role: .destructive) {
+                onDelete()
+            }
+            Button("Cancel", role: .cancel) {}
+        }
     }
 }

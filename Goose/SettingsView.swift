@@ -4,11 +4,14 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var apiService = GooseAPIService.shared
     @EnvironmentObject var configurationHandler: ConfigurationHandler
+    @StateObject private var agentStorage = AgentStorage.shared
 
     @State private var baseURL: String = ""
     @State private var secretKey: String = ""
     @State private var isTestingConnection = false
     @State private var showResetConfirmation = false
+    @State private var showSaveAgentDialog = false
+    @State private var agentName = ""
 
     var body: some View {
         NavigationView {
@@ -67,6 +70,25 @@ struct SettingsView: View {
                             Text("Testing connection...")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
+                        }
+                    }
+                    
+                    // Save Agent button (only show when connected)
+                    if apiService.isConnected {
+                        Button(action: {
+                            // Pre-populate with existing name if this agent is already saved
+                            if let existing = agentStorage.getAgentFromCurrentDefaults() {
+                                agentName = existing.name ?? ""
+                            } else {
+                                agentName = ""
+                            }
+                            showSaveAgentDialog = true
+                        }) {
+                            HStack {
+                                Image(systemName: "square.and.arrow.down")
+                                Text("Save Agent")
+                            }
+                            .foregroundColor(.blue)
                         }
                     }
                 }
@@ -134,6 +156,18 @@ struct SettingsView: View {
                 loadSettings()
             }
         }
+        .alert("Save Agent", isPresented: $showSaveAgentDialog) {
+            TextField("Agent Name (optional)", text: $agentName)
+            Button("Cancel", role: .cancel) {
+                agentName = ""
+            }
+            Button("Save") {
+                configurationHandler.saveCurrentConfigurationAsAgent(withName: agentName.isEmpty ? nil : agentName)
+                agentName = ""
+            }
+        } message: {
+            Text("Give this agent a name to easily identify it later")
+        }
     }
 
     private func loadSettings() {
@@ -144,6 +178,9 @@ struct SettingsView: View {
     private func saveSettings() {
         UserDefaults.standard.set(baseURL, forKey: "goose_base_url")
         UserDefaults.standard.set(secretKey, forKey: "goose_secret_key")
+        
+        // Ensure the configuration is added to the agent list
+        AgentStorage.shared.ensureCurrentAgentInList()
         
         // Post notification to refresh sessions when URL changes
         NotificationCenter.default.post(name: Notification.Name("RefreshSessions"), object: nil)

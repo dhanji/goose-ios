@@ -305,9 +305,43 @@ class GooseAPIService: ObservableObject {
     }
 
     // MARK: - Config Management
+    private static let configCacheTTL: TimeInterval = 3600  // 1 hour
+    
+    private func cacheNamespace() -> String {
+        // Namespace cache by baseURL and secret key to avoid cross-environment bleed
+        let ns = "\(baseURL)|\(secretKey)"
+        return String(ns.hashValue)
+    }
+    
+    func clearConfigCache() {
+        // Clear all config cache entries for current namespace
+        let ns = cacheNamespace()
+        let prefix = "configCache:\(ns):"
+        let defaults = UserDefaults.standard
+        for key in defaults.dictionaryRepresentation().keys where key.hasPrefix(prefix) {
+            defaults.removeObject(forKey: key)
+        }
+        print("💾 Cleared config cache for namespace \(ns)")
+    }
+    
     func readConfigValue(key: String, isSecret: Bool = false) async -> String? {
         let startTime = Date()
         print("⏱️ [PERF] readConfigValue(\(key)) started")
+        
+        // Check cache for non-secret config values
+        let ns = cacheNamespace()
+        let storeKey = "configCache:\(ns):\(key)"
+        let expKey = storeKey + ":exp"
+        let now = Date().timeIntervalSince1970
+        if !isSecret {
+            let expiresAt = UserDefaults.standard.double(forKey: expKey)
+            if expiresAt > now, let cachedValue = UserDefaults.standard.string(forKey: storeKey) {
+                let elapsed = Date().timeIntervalSince(startTime)
+                print("⏱️ [PERF] readConfigValue(\(key)) from cache in \(String(format: "%.2f", elapsed))s")
+                print("💾 Config '\(key)' = '\(cachedValue)' (from cache)")
+                return cachedValue
+            }
+        }
         
         guard let url = URL(string: "\(baseURL)/config/read") else {
             print("⚠️ Invalid URL for config read")
@@ -342,6 +376,15 @@ class GooseAPIService: ObservableObject {
                 // Remove quotes if present (JSON string encoding)
                 let cleanValue = value?.trimmingCharacters(in: CharacterSet(charactersIn: "\""))
                 print("✅ Config '\(key)' = '\(cleanValue ?? "nil")'")
+                
+                // Cache non-secret values with fixed 1-hour TTL
+                if !isSecret, let cleanValue = cleanValue {
+                    let expiresAt = now + Self.configCacheTTL
+                    UserDefaults.standard.set(cleanValue, forKey: storeKey)
+                    UserDefaults.standard.set(expiresAt, forKey: expKey)
+                    print("💾 Cached '\(key)' for namespace \(ns)")
+                }
+                
                 return cleanValue
             } else {
                 print("⚠️ Failed to read config '\(key)': HTTP \(httpResponse.statusCode)")
@@ -398,6 +441,9 @@ class GooseAPIService: ObservableObject {
             }
 
             print("✅ Provider updated to \(provider) with model \(model ?? "default")")
+            
+            // Clear config cache when agent changes
+            clearConfigCache()
         }
     }
 
@@ -437,10 +483,14 @@ class GooseAPIService: ObservableObject {
                 return
             }
 
-            // Load only the enabled extensions
-            for extensionConfig in extensions {
-                if let enabled = extensionConfig["enabled"] as? Bool, enabled {
-                    await self.loadExtension(sessionId: sessionId, extensionConfig: extensionConfig)
+            // Load enabled extensions in parallel
+            await withTaskGroup(of: Void.self) { group in
+                for extensionConfig in extensions {
+                    if let enabled = extensionConfig["enabled"] as? Bool, enabled {
+                        group.addTask {
+                            await self.loadExtension(sessionId: sessionId, extensionConfig: extensionConfig)
+                        }
+                    }
                 }
             }
         }
