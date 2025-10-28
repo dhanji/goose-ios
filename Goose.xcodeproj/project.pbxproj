@@ -20,6 +20,8 @@
 		838F2DEE2E9E24E200E2FC48 /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 838F2DED2E9E24E200E2FC48 /* SidebarView.swift */; };
 		838F2DF02E9E270300E2FC48 /* ChatInputView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 838F2DEF2E9E270300E2FC48 /* ChatInputView.swift */; };
 		83ACD8AB2E827DB500379D0E /* ConfigurationHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83ACD8A82E827DB500379D0E /* ConfigurationHandler.swift */; };
+		83EF04C72EB0393200D2D688 /* MarkdownTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83EF04C62EB0393200D2D688 /* MarkdownTestView.swift */; };
+		8C4210473D62873842C1D790 /* MarkdownTableView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA377AE97CC0C621896375E7 /* MarkdownTableView.swift */; };
 		A0E8AD4226A0448EA14A1E4D /* CalendarExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE15643668F34C98B329A6FA /* CalendarExtensions.swift */; };
 		A1234567890ABCDEF001 /* GooseApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1234567890ABCDEF000 /* GooseApp.swift */; };
 		A1234567890ABCDEF003 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1234567890ABCDEF002 /* ContentView.swift */; };
@@ -30,9 +32,9 @@
 		A1234567890ABCDEF014 /* GooseAPIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1234567890ABCDEF013 /* GooseAPIService.swift */; };
 		A1234567890ABCDEF018 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1234567890ABCDEF017 /* SettingsView.swift */; };
 		A1234567890ABCDEF020 /* Markdown in Frameworks */ = {isa = PBXBuildFile; productRef = A1234567890ABCDEF019 /* Markdown */; };
+		BBDDB97B3661CB27DAED17A1 /* StackedToolCallsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE1A3D767C87B30740AC05D2 /* StackedToolCallsView.swift */; };
 		C3E99F296500267DEFD596CA /* VoiceOutputManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A19A6DF268C759B62CA875DB /* VoiceOutputManager.swift */; };
 		D32A017F2EAA7D6600AF9DD0 /* AssistantMessageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D32A017E2EAA7D6600AF9DD0 /* AssistantMessageView.swift */; };
-		BBDDB97B3661CB27DAED17A1 /* StackedToolCallsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE1A3D767C87B30740AC05D2 /* StackedToolCallsView.swift */; };
 		D32A01812EAA7D7300AF9DD0 /* UserMessageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D32A01802EAA7D7300AF9DD0 /* UserMessageView.swift */; };
 		D32A01832EAA7D8100AF9DD0 /* SharedMessageComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = D32A01822EAA7D8100AF9DD0 /* SharedMessageComponents.swift */; };
 		D32A01852EAA7D8F00AF9DD0 /* ToolViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = D32A01842EAA7D8F00AF9DD0 /* ToolViews.swift */; };
@@ -41,7 +43,9 @@
 		D3BC33FE2EA16CF30057E748 /* TrialModeBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3BC33FD2EA16CF30057E748 /* TrialModeBanner.swift */; };
 		D3BC34002EA1713D0057E748 /* NodeMatrix.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3BC33FF2EA1713D0057E748 /* NodeMatrix.swift */; };
 		D3BC34042EA19D990057E748 /* NodeFocus.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3BC34032EA19D990057E748 /* NodeFocus.swift */; };
-/* End PBXBuildFile section */
+		8542CDA2877E4BEF8ADA8A5C001 /* AppNoticeCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8542CDA2877E4BEF8ADA8A5C000 /* AppNoticeCenter.swift */; };
+		4D6CA113A6714967B9BA0CA1001 /* AppNoticeOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6CA113A6714967B9BA0CA1000 /* AppNoticeOverlay.swift */; };
+	/* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		0F2CBE33C0F236E880C9F178 /* VoiceInputManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceInputManager.swift; sourceTree = "<group>"; };
@@ -59,6 +63,7 @@
 		83ACD8A82E827DB500379D0E /* ConfigurationHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigurationHandler.swift; sourceTree = "<group>"; };
 		83ACD8A92E827DB500379D0E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		83ACD8AC2E827FAE00379D0E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		83EF04C62EB0393200D2D688 /* MarkdownTestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MarkdownTestView.swift; path = Goose/MarkdownTestView.swift; sourceTree = "<group>"; };
 		A1234567890ABCDEF000 /* GooseApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GooseApp.swift; sourceTree = "<group>"; };
 		A1234567890ABCDEF002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		A1234567890ABCDEF004 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -71,7 +76,6 @@
 		A19A6DF268C759B62CA875DB /* VoiceOutputManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceOutputManager.swift; sourceTree = "<group>"; };
 		AE15643668F34C98B329A6FA /* CalendarExtensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarExtensions.swift; sourceTree = "<group>"; };
 		D32A017E2EAA7D6600AF9DD0 /* AssistantMessageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssistantMessageView.swift; sourceTree = "<group>"; };
-		FE1A3D767C87B30740AC05D2 /* StackedToolCallsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StackedToolCallsView.swift; sourceTree = "<group>"; };
 		D32A01802EAA7D7300AF9DD0 /* UserMessageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserMessageView.swift; sourceTree = "<group>"; };
 		D32A01822EAA7D8100AF9DD0 /* SharedMessageComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedMessageComponents.swift; sourceTree = "<group>"; };
 		D32A01842EAA7D8F00AF9DD0 /* ToolViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolViews.swift; sourceTree = "<group>"; };
@@ -80,13 +84,19 @@
 		D3BC33FD2EA16CF30057E748 /* TrialModeBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrialModeBanner.swift; sourceTree = "<group>"; };
 		D3BC33FF2EA1713D0057E748 /* NodeMatrix.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NodeMatrix.swift; sourceTree = "<group>"; };
 		D3BC34032EA19D990057E748 /* NodeFocus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NodeFocus.swift; sourceTree = "<group>"; };
-/* End PBXFileReference section */
+		EA377AE97CC0C621896375E7 /* MarkdownTableView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownTableView.swift; sourceTree = "<group>"; };
+		FE1A3D767C87B30740AC05D2 /* StackedToolCallsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StackedToolCallsView.swift; sourceTree = "<group>"; };
+		8542CDA2877E4BEF8ADA8A5C000 /* AppNoticeCenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppNoticeCenter.swift; sourceTree = "<group>"; };
+		4D6CA113A6714967B9BA0CA1000 /* AppNoticeOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppNoticeOverlay.swift; sourceTree = "<group>"; };
+	/* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		A1234567890ABCDEF996 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				8542CDA2877E4BEF8ADA8A5C001 /* AppNoticeCenter.swift in Sources */,
+				4D6CA113A6714967B9BA0CA1001 /* AppNoticeOverlay.swift in Sources */,
 				A1234567890ABCDEF020 /* Markdown in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -105,6 +115,7 @@
 		A1234567890ABCDEF990 = {
 			isa = PBXGroup;
 			children = (
+				83EF04C62EB0393200D2D688 /* MarkdownTestView.swift */,
 				832B7A0D2EA9E166000FB7AB /* TrialMode.swift */,
 				837D4D722EA6FAD6000A95B7 /* SessionsCard.swift */,
 				838F2DE92E9E1CF700E2FC48 /* TaskDetailView.swift */,
@@ -133,6 +144,9 @@
 				83ACD8A92E827DB500379D0E /* Info.plist */,
 				A1234567890ABCDEF000 /* GooseApp.swift */,
 				A1234567890ABCDEF002 /* ContentView.swift */,
+				8542CDA2877E4BEF8ADA8A5C000 /* AppNoticeCenter.swift */,
+				4D6CA113A6714967B9BA0CA1000 /* AppNoticeOverlay.swift */,
+
 				AE15643668F34C98B329A6FA /* CalendarExtensions.swift */,
 				A1234567890ABCDEF009 /* ChatView.swift */,
 				0F2CBE33C0F236E880C9F178 /* VoiceInputManager.swift */,
@@ -142,6 +156,7 @@
 				FE1A3D767C87B30740AC05D2 /* StackedToolCallsView.swift */,
 				D32A01802EAA7D7300AF9DD0 /* UserMessageView.swift */,
 				D32A01822EAA7D8100AF9DD0 /* SharedMessageComponents.swift */,
+				EA377AE97CC0C621896375E7 /* MarkdownTableView.swift */,
 				D32A01842EAA7D8F00AF9DD0 /* ToolViews.swift */,
 				A1234567890ABCDEF017 /* SettingsView.swift */,
 				A1234567890ABCDEF011 /* Message.swift */,
@@ -236,6 +251,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				8542CDA2877E4BEF8ADA8A5C001 /* AppNoticeCenter.swift in Sources */,
+				4D6CA113A6714967B9BA0CA1001 /* AppNoticeOverlay.swift in Sources */,
 				A1234567890ABCDEF003 /* ContentView.swift in Sources */,
 				838F2DF02E9E270300E2FC48 /* ChatInputView.swift in Sources */,
 				837D4D732EA6FAD6000A95B7 /* SessionsCard.swift in Sources */,
@@ -250,8 +267,10 @@
 				D32A017F2EAA7D6600AF9DD0 /* AssistantMessageView.swift in Sources */,
 				BBDDB97B3661CB27DAED17A1 /* StackedToolCallsView.swift in Sources */,
 				838F2DEC2E9E1CF700E2FC48 /* TaskDetailView.swift in Sources */,
+				83EF04C72EB0393200D2D688 /* MarkdownTestView.swift in Sources */,
 				C3E99F296500267DEFD596CA /* VoiceOutputManager.swift in Sources */,
 				D32A01832EAA7D8100AF9DD0 /* SharedMessageComponents.swift in Sources */,
+				8C4210473D62873842C1D790 /* MarkdownTableView.swift in Sources */,
 				D32A01852EAA7D8F00AF9DD0 /* ToolViews.swift in Sources */,
 				D3BC33FC2EA161BA0057E748 /* SafeAreaExtension.swift in Sources */,
 				A1234567890ABCDEF012 /* Message.swift in Sources */,

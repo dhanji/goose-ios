@@ -3,6 +3,7 @@ import SwiftUI
 @main
 struct GooseApp: App {
     @StateObject private var configurationHandler = ConfigurationHandler.shared
+    @StateObject private var noticeCenter = AppNoticeCenter.shared
     
     init() {
         // Set demo defaults on first launch only
@@ -13,6 +14,7 @@ struct GooseApp: App {
         WindowGroup {
             ContentView()
                 .environmentObject(configurationHandler)
+                .environmentObject(noticeCenter)
                 .onOpenURL { url in
                     print("📱 App received URL: \(url)")
                     _ = configurationHandler.handleURL(url)

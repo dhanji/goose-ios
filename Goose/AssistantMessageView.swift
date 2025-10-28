@@ -219,6 +219,12 @@ struct MessageContentView: View {
         case .conversationCompacted(let content):
             MarkdownText(text: "📝 \(content.msg)")
                 .textSelection(.enabled)
+            
+        case .systemNotification(let content):
+            // System notifications can be displayed as informational messages
+            MarkdownText(text: "ℹ️ \(content.msg)")
+                .textSelection(.enabled)
+                .foregroundColor(.secondary)
         }
     }
 }

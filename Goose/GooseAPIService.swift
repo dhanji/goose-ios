@@ -20,8 +20,57 @@ class GooseAPIService: ObservableObject {
     var isTrialMode: Bool {
         return baseURL.contains("demo-goosed.fly.dev")
     }
+    
+    // Private network detection (tailscale, private IPs)
+    private var isPrivateNetworkURL: Bool {
+        return baseURL.contains(".ts.net") || baseURL.contains("://100.")
+    }
 
     private init() {}
+    
+    // MARK: - Centralized Error Handling
+    
+    /// Handle API errors and set appropriate notices
+    private func handleAPIError(_ error: Error, context: String = "") {
+        if isTrialMode { return }
+        
+        if let apiError = error as? APIError {
+            switch apiError {
+            case .httpError(let code, _):
+                if code == 503 {
+                    AppNoticeCenter.shared.setNotice(.tunnelDisabled)
+                }
+            case .decodingError:
+                AppNoticeCenter.shared.setNotice(.appNeedsUpdate)
+            default:
+                break
+            }
+        } else if error is DecodingError {
+            AppNoticeCenter.shared.setNotice(.appNeedsUpdate)
+        } else if let urlError = error as? URLError {
+            // Connection failures on private networks likely mean tunnel isn't running
+            if urlError.code == .cannotConnectToHost && isPrivateNetworkURL {
+                AppNoticeCenter.shared.setNotice(.tunnelUnreachable)
+            }
+        }
+        
+        if !context.isEmpty {
+            print("🚨 \(context): \(error)")
+        }
+    }
+    
+    /// Handle HTTP status codes and set appropriate notices
+    private func handleHTTPStatus(_ statusCode: Int, body: String, context: String = "") {
+        if isTrialMode { return }
+        
+        if statusCode == 503 {
+            AppNoticeCenter.shared.setNotice(.tunnelDisabled)
+        }
+        
+        if !context.isEmpty {
+            print("🚨 \(context) - HTTP \(statusCode): \(body)")
+        }
+    }
 
     // MARK: - Proper SSE Streaming Implementation
     func startChatStreamWithSSE(
@@ -131,9 +180,7 @@ class GooseAPIService: ObservableObject {
                     } else {
                         // Get error details for connection test
                         let errorBody = String(data: data, encoding: .utf8) ?? "No error details"
-                        print(
-                            "🚨 Connection Test Failed - HTTP \(httpResponse.statusCode): \(errorBody)"
-                        )
+                        handleHTTPStatus(httpResponse.statusCode, body: errorBody, context: "Connection Test Failed")
                         self.connectionError = "HTTP \(httpResponse.statusCode): \(errorBody)"
                     }
                 }
@@ -184,11 +231,16 @@ class GooseAPIService: ObservableObject {
 
             if httpResponse.statusCode != 200 {
                 let errorBody = String(data: data, encoding: .utf8) ?? "No error details"
+                handleHTTPStatus(httpResponse.statusCode, body: errorBody, context: "Start Agent")
                 throw APIError.httpError(httpResponse.statusCode, errorBody)
             }
 
             let agentResponse = try JSONDecoder().decode(AgentResponse.self, from: data)
             return (agentResponse.id, agentResponse.conversation ?? [])
+        }
+        catch let error as DecodingError {
+            handleAPIError(APIError.decodingError(error), context: "Start Agent")
+            throw APIError.decodingError(error)
         }
     }
 
@@ -231,7 +283,7 @@ class GooseAPIService: ObservableObject {
 
             if httpResponse.statusCode != 200 {
                 let errorBody = String(data: data, encoding: .utf8) ?? "No error details"
-                print("🚨 Resume failed with status \(httpResponse.statusCode): \(errorBody)")
+                handleHTTPStatus(httpResponse.statusCode, body: errorBody, context: "Resume Agent")
                 throw APIError.httpError(httpResponse.statusCode, errorBody)
             }
 
@@ -263,6 +315,7 @@ class GooseAPIService: ObservableObject {
                         case .summarizationRequested: return "SUMMARIZATION"
                         case .toolConfirmationRequest: return "TOOL_CONFIRM"
                         case .conversationCompacted: return "COMPACTED"
+                        case .systemNotification(let sn): return "SYS_NOTIF[\(sn.notificationType)]"
                         }
                     } ?? "EMPTY"
                     print("📊   [\(idx)] \(msg.id.prefix(8))... \(msg.role) - \(preview)")
@@ -271,6 +324,10 @@ class GooseAPIService: ObservableObject {
             print("📊 ═══════════════════════════════════════════════════════")
             
             return (agentResponse.id, messages)
+        }
+        catch let error as DecodingError {
+            handleAPIError(APIError.decodingError(error), context: "Resume Agent")
+            throw APIError.decodingError(error)
         }
     }
 
@@ -298,6 +355,7 @@ class GooseAPIService: ObservableObject {
 
         if httpResponse.statusCode != 200 {
             let errorBody = String(data: data, encoding: .utf8) ?? "No error details"
+            handleHTTPStatus(httpResponse.statusCode, body: errorBody, context: "Update From Session")
             throw APIError.httpError(httpResponse.statusCode, errorBody)
         }
 
@@ -305,9 +363,43 @@ class GooseAPIService: ObservableObject {
     }
 
     // MARK: - Config Management
+    private static let configCacheTTL: TimeInterval = 3600  // 1 hour
+    
+    private func cacheNamespace() -> String {
+        // Namespace cache by baseURL and secret key to avoid cross-environment bleed
+        let ns = "\(baseURL)|\(secretKey)"
+        return String(ns.hashValue)
+    }
+    
+    func clearConfigCache() {
+        // Clear all config cache entries for current namespace
+        let ns = cacheNamespace()
+        let prefix = "configCache:\(ns):"
+        let defaults = UserDefaults.standard
+        for key in defaults.dictionaryRepresentation().keys where key.hasPrefix(prefix) {
+            defaults.removeObject(forKey: key)
+        }
+        print("💾 Cleared config cache for namespace \(ns)")
+    }
+    
     func readConfigValue(key: String, isSecret: Bool = false) async -> String? {
         let startTime = Date()
         print("⏱️ [PERF] readConfigValue(\(key)) started")
+        
+        // Check cache for non-secret config values
+        let ns = cacheNamespace()
+        let storeKey = "configCache:\(ns):\(key)"
+        let expKey = storeKey + ":exp"
+        let now = Date().timeIntervalSince1970
+        if !isSecret {
+            let expiresAt = UserDefaults.standard.double(forKey: expKey)
+            if expiresAt > now, let cachedValue = UserDefaults.standard.string(forKey: storeKey) {
+                let elapsed = Date().timeIntervalSince(startTime)
+                print("⏱️ [PERF] readConfigValue(\(key)) from cache in \(String(format: "%.2f", elapsed))s")
+                print("💾 Config '\(key)' = '\(cachedValue)' (from cache)")
+                return cachedValue
+            }
+        }
         
         guard let url = URL(string: "\(baseURL)/config/read") else {
             print("⚠️ Invalid URL for config read")
@@ -342,6 +434,15 @@ class GooseAPIService: ObservableObject {
                 // Remove quotes if present (JSON string encoding)
                 let cleanValue = value?.trimmingCharacters(in: CharacterSet(charactersIn: "\""))
                 print("✅ Config '\(key)' = '\(cleanValue ?? "nil")'")
+                
+                // Cache non-secret values with fixed 1-hour TTL
+                if !isSecret, let cleanValue = cleanValue {
+                    let expiresAt = now + Self.configCacheTTL
+                    UserDefaults.standard.set(cleanValue, forKey: storeKey)
+                    UserDefaults.standard.set(expiresAt, forKey: expKey)
+                    print("💾 Cached '\(key)' for namespace \(ns)")
+                }
+                
                 return cleanValue
             } else {
                 print("⚠️ Failed to read config '\(key)': HTTP \(httpResponse.statusCode)")
@@ -393,11 +494,18 @@ class GooseAPIService: ObservableObject {
             }
 
             if httpResponse.statusCode != 200 {
-                let errorBody = String(data: data, encoding: .utf8) ?? "No error details"
-                throw APIError.httpError(httpResponse.statusCode, errorBody)
-            }
+            let errorBody = String(data: data, encoding: .utf8) ?? "No error details"
+            handleHTTPStatus(httpResponse.statusCode, body: errorBody, context: "Update From Session")
+            throw APIError.httpError(httpResponse.statusCode, errorBody)
+        }
 
             print("✅ Provider updated to \(provider) with model \(model ?? "default")")
+            
+            // Clear config cache when agent changes
+            clearConfigCache()
+        } catch let error as DecodingError {
+            handleAPIError(APIError.decodingError(error), context: "Update Provider")
+            throw APIError.decodingError(error)
         }
     }
 
@@ -423,7 +531,7 @@ class GooseAPIService: ObservableObject {
 
             if httpResponse.statusCode != 200 {
                 let errorBody = String(data: data, encoding: .utf8) ?? "No error details"
-                print("⚠️ Failed to get extensions config: \(errorBody)")
+                handleHTTPStatus(httpResponse.statusCode, body: errorBody, context: "Load Extensions")
                 return
             }
 
@@ -434,15 +542,23 @@ class GooseAPIService: ObservableObject {
                 let extensions = extensionsConfig["extensions"] as? [[String: Any]]
             else {
                 print("⚠️ Failed to parse extensions config")
+                handleAPIError(APIError.noData, context: "Load Extensions - parse error")
                 return
             }
 
-            // Load only the enabled extensions
-            for extensionConfig in extensions {
-                if let enabled = extensionConfig["enabled"] as? Bool, enabled {
-                    await self.loadExtension(sessionId: sessionId, extensionConfig: extensionConfig)
+            // Load enabled extensions in parallel
+            await withTaskGroup(of: Void.self) { group in
+                for extensionConfig in extensions {
+                    if let enabled = extensionConfig["enabled"] as? Bool, enabled {
+                        group.addTask {
+                            await self.loadExtension(sessionId: sessionId, extensionConfig: extensionConfig)
+                        }
+                    }
                 }
             }
+        } catch let error as DecodingError {
+            handleAPIError(APIError.decodingError(error), context: "Load Extensions")
+            throw error
         }
     }
 
@@ -519,11 +635,11 @@ class GooseAPIService: ObservableObject {
                 return insights
             } else {
                 let errorBody = String(data: data, encoding: .utf8) ?? "No error details"
-                print("🚨 Failed to fetch insights: \(httpResponse.statusCode) - \(errorBody)")
+                handleHTTPStatus(httpResponse.statusCode, body: errorBody, context: "Fetch Insights")
                 return nil
             }
         } catch {
-            print("🚨 Error fetching insights: \(error)")
+            handleAPIError(error, context: "Fetch Insights")
             return nil
         }
     }
@@ -561,12 +677,11 @@ class GooseAPIService: ObservableObject {
                 return sessionsResponse.sessions
             } else {
                 let errorBody = String(data: data, encoding: .utf8) ?? "No error details"
-                print("🚨 Sessions fetch failed - HTTP \(httpResponse.statusCode): \(errorBody)")
+                handleHTTPStatus(httpResponse.statusCode, body: errorBody, context: "Fetch Sessions")
                 return []
             }
         } catch {
-            print("🚨 Error fetching sessions: \(error)")
-
+            handleAPIError(error, context: "Fetch Sessions")
             return []
         }
     }
@@ -621,7 +736,7 @@ class SSEDelegate: NSObject, URLSessionDataDelegate {
         print("🚀 SSE Response Headers: \(httpResponse.allHeaderFields)")
 
         guard httpResponse.statusCode == 200 else {
-            // Store error status for later
+            // Store error status for later - errors are handled by earlier API calls
             errorStatusCode = httpResponse.statusCode
             // Let it continue so we can capture the error body
             completionHandler(.allow)
@@ -702,6 +817,7 @@ class SSEDelegate: NSObject, URLSessionDataDelegate {
                             return
                         }
                     } catch {
+                        // Errors are handled by earlier API calls
                         print("🚨 Failed to decode SSE event: \(error)")
                         DispatchQueue.main.async {
                             self.onError(error)

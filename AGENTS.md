@@ -1,8 +1,3 @@
-**Note**: This project uses [bd (beads)](https://github.com/steveyegge/beads) for issue tracking. Use `bd` commands instead of markdown TODOs. See onboarding output for workflow details.
-
-BEFORE ANYTHING ELSE: run 'bd onboard' and follow the instructions
-if you don't have bd: brew tap steveyegge/beads; brew install bd
-
 This is a swift app - which is a client to the goosed service (scripts here are just for helpers to launch it in dev time)
 
 validating changes when needed, can do things like this (or be smarter) with iphone 17:

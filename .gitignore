@@ -65,3 +65,5 @@ tunnel_url.txt
 build/
 
 goosed
+
+logs/
