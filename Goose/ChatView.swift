@@ -471,8 +471,6 @@ struct ChatView: View {
                 // Create session if we don't have one
                 if currentSessionId == nil {
                     // Always create a new session when starting from welcome screen
-                    let sessionStartTime = Date()
-                    print("⏱️ [SESSION_START] Beginning session creation")
                     print("🆕 Creating new session (trial mode: \(apiService.isTrialMode))")
                     let (sessionId, initialMessages) = try await apiService.startAgent()
                     
@@ -482,7 +480,7 @@ struct ChatView: View {
                         print("💾 Saved as Current Session in trial mode")
                     }
                     
-                    print("✅ SESSION READY: \(sessionId)")
+                    print("✅ SESSION CREATED: \(sessionId)")
 
                     // Load any initial messages from the session
                     if !initialMessages.isEmpty {
@@ -491,55 +489,35 @@ struct ChatView: View {
                         }
                     }
 
-                    // Read provider and model from config (in parallel)
-                    print("🔧 READING PROVIDER AND MODEL FROM CONFIG (parallel)")
-                    async let providerResult = apiService.readConfigValue(key: "GOOSE_PROVIDER")
-                    async let modelResult = apiService.readConfigValue(key: "GOOSE_MODEL")
-                    
-                    guard let provider = await providerResult,
-                        let model = await modelResult
-                    else {
-                        throw APIError.noData
-                    }
-
-                    print("🔧 UPDATING PROVIDER TO \(provider) WITH MODEL \(model)")
-                    try await apiService.updateProvider(
-                        sessionId: sessionId, provider: provider, model: model)
-                    print("✅ PROVIDER UPDATED FOR SESSION: \(sessionId)")
-
-                    // Apply server-side prompts and load extensions in parallel
-                    print("🔧 STARTING AGENT UPDATE AND EXTENSION LOAD (parallel) for session: \(sessionId)")
-                    async let updateFromSessionTask: Void = apiService.updateFromSession(sessionId: sessionId)
-                    async let loadExtensionsTask: Void = apiService.loadEnabledExtensions(sessionId: sessionId)
-                    try await (updateFromSessionTask, loadExtensionsTask)
-                    print("✅ AGENT UPDATED AND EXTENSIONS LOADED for session: \(sessionId)")
-
                     currentSessionId = sessionId
+                    // Mark as not activated - will be activated on first message (same flow for all sessions)
+                    isSessionActivated = false
+                }
+                
+                // Activate session if needed (same for NEW and EXISTING sessions)
+                // This matches desktop flow: resumeAgent + updateFromSession
+                if !isSessionActivated {
+                    print("📱 Activating session with provider/extensions/system-prompt...")
+                    guard let sessionId = currentSessionId else {
+                        throw APIError.invalidResponse
+                    }
                     
-                    // Mark as activated since we just created it with full model/extensions
+                    let activationStart = Date()
+                    
+                    // Load provider and extensions from server config (matches desktop)
+                    let (_, _) = try await apiService.resumeAgent(
+                        sessionId: sessionId, loadModelAndExtensions: true)
+                    print("✅ Provider and extensions loaded from config")
+                    
+                    // Apply system prompt (desktop_prompt.md + recipe)
+                    try await apiService.updateFromSession(sessionId: sessionId)
+                    print("✅ System prompt applied")
+                    
+                    let activationTime = Date().timeIntervalSince(activationStart)
+                    print("⏱️ Session activated in \(String(format: "%.2f", activationTime))s")
+                    
                     await MainActor.run {
                         isSessionActivated = true
-                    }
-                    
-                    // Log total session creation time
-                    let totalElapsed = Date().timeIntervalSince(sessionStartTime)
-                    print("⏱️ [SESSION_START] Session ready in \(String(format: "%.2f", totalElapsed))s")
-                } else {
-                    // Resuming an existing session - activate it if needed
-                    if !isSessionActivated {
-                        print("📱 Activating resumed session with model/extensions...")
-                        guard let sessionId = currentSessionId else {
-                            throw APIError.invalidResponse
-                        }
-                        
-                        // Resume with full model and extensions loading
-                        let (_, _) = try await apiService.resumeAgent(
-                            sessionId: sessionId, loadModelAndExtensions: true)
-                        print("✅ Session activated with model/extensions")
-                        
-                        await MainActor.run {
-                            isSessionActivated = true
-                        }
                     }
                 }
 
