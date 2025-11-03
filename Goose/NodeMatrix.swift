@@ -103,9 +103,12 @@ struct NodeMatrix: View {
             return date1 < date2
         }
         
+        // Limit to most recent 30 sessions
+        let limited = Array(sorted.suffix(30))
+        
         // Note: We can't cache here because this is called during body rendering
         // Caching will happen in precalculateSessions()
-        return sorted
+        return limited
     }
     
     /// Pre-calculate and cache sessions for a day offset
@@ -134,8 +137,11 @@ struct NodeMatrix: View {
             return date1 < date2
         }
         
-        sessionCache[offset] = sorted
-        print("💾 Cached \(sorted.count) sessions for day offset \(offset)")
+        // Limit to most recent 30 sessions
+        let limited = Array(sorted.suffix(30))
+        
+        sessionCache[offset] = limited
+        print("💾 Cached \(limited.count) sessions for day offset \(offset)")
     }
     
     private func dateLabel(for offset: Int) -> String {

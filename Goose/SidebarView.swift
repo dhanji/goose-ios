@@ -24,8 +24,12 @@ struct SidebarView: View {
     @State private var agentToRename: AgentConfiguration?
     @State private var newAgentName = ""
     
+    // Favorites management
+    @StateObject private var favoritesStorage = FavoriteSessionsStorage.shared
+    
     // Cached date groupings to avoid recomputation on every render
     @State private var cachedGroupedByDate: [(String, [ChatSession])] = []
+    @State private var cachedFavoriteSessions: [ChatSession] = []
     
     // Static ISO8601 formatter to avoid recreating
     private static let iso8601Formatter: ISO8601DateFormatter = {
@@ -97,14 +101,27 @@ struct SidebarView: View {
     // Update cached groupings when sessions change
     private func updateGroupings() {
         let sessions = cachedSessions
+        let favoriteIds = favoritesStorage.favoriteSessionIds
         
         Task {
             let groupedByDate = await Task.detached {
                 self.groupSessionsByDate(sessions: sessions)
             }.value
             
+            let favoriteSessions = await Task.detached {
+                sessions.filter { favoriteIds.contains($0.id) }
+                    .sorted { s1, s2 in
+                        guard let date1 = Self.iso8601Formatter.date(from: s1.updatedAt),
+                              let date2 = Self.iso8601Formatter.date(from: s2.updatedAt) else {
+                            return false
+                        }
+                        return date1 > date2
+                    }
+            }.value
+            
             await MainActor.run {
                 self.cachedGroupedByDate = groupedByDate
+                self.cachedFavoriteSessions = favoriteSessions
             }
         }
     }
@@ -227,6 +244,28 @@ struct SidebarView: View {
                             // Spacer below agent list
                             Color.clear
                                 .frame(height: 24)
+                            
+                            // Favorites section
+                            if !cachedFavoriteSessions.isEmpty {
+                                DateSectionHeader(label: "FAVORITES")
+                                
+                                ForEach(cachedFavoriteSessions) { session in
+                                    SessionRowView(session: session)
+                                        .onTapGesture {
+                                            onSessionSelect(session.id)
+                                            withAnimation(.easeInOut(duration: 0.3)) {
+                                                isShowing = false
+                                            }
+                                        }
+                                    Divider()
+                                        .background(Color.gray.opacity(0.2))
+                                        .padding(.leading)
+                                }
+                                
+                                // Spacer after favorites
+                                Color.clear
+                                    .frame(height: 12)
+                            }
                             
                             // Push sessions to bottom if fewer than 5
                             if cachedSessions.count < 5 {
@@ -356,6 +395,9 @@ struct SidebarView: View {
         .onChange(of: cachedSessions) { _ in
             updateGroupings()
         }
+        .onChange(of: favoritesStorage.favoriteSessionIds) { _ in
+            updateGroupings()
+        }
     }
 }
 
@@ -382,17 +424,32 @@ struct DateSectionHeader: View {
 // MARK: - Session Row View
 struct SessionRowView: View {
     let session: ChatSession
+    @ObservedObject private var favoritesStorage = FavoriteSessionsStorage.shared
+    
+    var isFavorite: Bool {
+        favoritesStorage.isFavorite(session.id)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 8) {
                 // Session name
-                Text(session.title)
+                Text(session.description)
                     .font(.system(size: 15, weight: .medium))
                     .lineLimit(1)
                     .foregroundColor(.primary)
                 
                 Spacer()
+                
+                // Favorite button
+                Button(action: {
+                    favoritesStorage.toggleFavorite(session.id)
+                }) {
+                    Image(systemName: isFavorite ? "star.fill" : "star")
+                        .font(.system(size: 13))
+                        .foregroundColor(isFavorite ? .yellow : .secondary)
+                }
+                .buttonStyle(.plain)
                 
                 // Time ago
                 Text(formatTime(session.updatedAt))
