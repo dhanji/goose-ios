@@ -566,7 +566,7 @@ class GooseAPIService: ObservableObject {
     }
 
     private func loadExtension(sessionId: String, extensionConfig: [String: Any]) async {
-        guard let url = URL(string: "\(baseURL)/extensions/add") else {
+        guard let url = URL(string: "\(baseURL)/agent/add_extension") else {
             print("⚠️ Invalid URL for extension loading")
             return
         }

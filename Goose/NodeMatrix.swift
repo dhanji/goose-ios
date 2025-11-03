@@ -15,6 +15,7 @@ struct NodeMatrix: View {
     @State private var dashPhase: CGFloat = 0
     @State private var containerOffset: CGFloat = 0
     @State private var geometrySize: CGSize = .zero
+    @StateObject private var stateTracker = SessionStateTracker.shared
     
     // MARK: - Shared Date Formatter
     /// Reusable date formatter to avoid expensive recreation
@@ -103,9 +104,12 @@ struct NodeMatrix: View {
             return date1 < date2
         }
         
+        // Limit to most recent 30 sessions
+        let limited = Array(sorted.suffix(30))
+        
         // Note: We can't cache here because this is called during body rendering
         // Caching will happen in precalculateSessions()
-        return sorted
+        return limited
     }
     
     /// Pre-calculate and cache sessions for a day offset
@@ -134,8 +138,11 @@ struct NodeMatrix: View {
             return date1 < date2
         }
         
-        sessionCache[offset] = sorted
-        print("💾 Cached \(sorted.count) sessions for day offset \(offset)")
+        // Limit to most recent 30 sessions
+        let limited = Array(sorted.suffix(30))
+        
+        sessionCache[offset] = limited
+        print("💾 Cached \(limited.count) sessions for day offset \(offset)")
     }
     
     private func dateLabel(for offset: Int) -> String {
@@ -195,10 +202,10 @@ struct NodeMatrix: View {
                             tapTargetSize: tapTargetSize,
                             highlightRingSize: highlightRingSize,
                             messageDotRadius: messageDotRadius,
-                            messageDotSize: messageDotSize
-                        ,
-                        getCachedPosition: self.getCachedPosition
-                    )
+                            messageDotSize: messageDotSize,
+                            getCachedPosition: self.getCachedPosition,
+                            stateTracker: stateTracker
+                        )
                         .frame(width: nodeGeometry.size.width, height: nodeGeometry.size.height)
                         
                         // Current day
@@ -214,9 +221,11 @@ struct NodeMatrix: View {
                             highlightRingSize: highlightRingSize,
                             messageDotRadius: messageDotRadius,
                             messageDotSize: messageDotSize,
-                            getCachedPosition: self.getCachedPosition, pulseAnimation: $pulseAnimation,
+                            getCachedPosition: self.getCachedPosition,
+                            stateTracker: stateTracker,
+                            pulseAnimation: $pulseAnimation,
                             dashPhase: $dashPhase
-                    )
+                        )
                         .frame(width: nodeGeometry.size.width, height: nodeGeometry.size.height)
                         
                         // Next day (only if not on today)
@@ -232,10 +241,10 @@ struct NodeMatrix: View {
                                 tapTargetSize: tapTargetSize,
                                 highlightRingSize: highlightRingSize,
                                 messageDotRadius: messageDotRadius,
-                                messageDotSize: messageDotSize
-                            ,
-                            getCachedPosition: self.getCachedPosition
-                        )
+                                messageDotSize: messageDotSize,
+                                getCachedPosition: self.getCachedPosition,
+                                stateTracker: stateTracker
+                            )
                             .frame(width: nodeGeometry.size.width, height: nodeGeometry.size.height)
                         }
                     }
@@ -570,6 +579,7 @@ struct DayContentView: View {
     let getCachedPosition: (ChatSession, Int, CGSize, [ChatSession], String) -> CGPoint
     @Binding var pulseAnimation: Bool
     @Binding var dashPhase: CGFloat
+    @ObservedObject var stateTracker: SessionStateTracker
     
     init(sessions: [ChatSession],
          selectedSessionId: String?,
@@ -583,6 +593,7 @@ struct DayContentView: View {
          messageDotRadius: @escaping (CGFloat) -> CGFloat,
          messageDotSize: CGFloat,
          getCachedPosition: @escaping (ChatSession, Int, CGSize, [ChatSession], String) -> CGPoint,
+         stateTracker: SessionStateTracker,
          pulseAnimation: Binding<Bool> = .constant(false),
          dashPhase: Binding<CGFloat> = .constant(0)) {
         self.sessions = sessions
@@ -597,6 +608,7 @@ struct DayContentView: View {
         self.messageDotRadius = messageDotRadius
         self.messageDotSize = messageDotSize
         self.getCachedPosition = getCachedPosition
+        self.stateTracker = stateTracker
         self._pulseAnimation = pulseAnimation
         self._dashPhase = dashPhase
     }
@@ -672,6 +684,14 @@ struct DayContentView: View {
                                 Circle()
                                     .stroke(Color.blue, lineWidth: 2)
                                     .frame(width: currentHighlightRing, height: currentHighlightRing)
+                            }
+                            
+                            // Active session indicator - pulsing ring
+                            if stateTracker.isProcessing(sessionId: session.id) {
+                                Circle()
+                                    .stroke(Color.green, lineWidth: 2)
+                                    .frame(width: currentHighlightRing * 1.2, height: currentHighlightRing * 1.2)
+                                    .pulsing()
                             }
                             
                             Circle()

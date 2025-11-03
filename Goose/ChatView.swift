@@ -1,4 +1,5 @@
 import SwiftUI
+import UserNotifications
 
 struct ChatView: View {
     @Binding var showingSidebar: Bool
@@ -24,6 +25,11 @@ struct ChatView: View {
     // Session loading state
     @State private var isLoadingSession = false
     @State private var isSessionActivated = false  // Track if model/extensions are loaded
+    @State private var isActivatingSession = false  // Track if we're activating an old session
+    
+    // Chat state tracking (matches desktop implementation)
+    @State private var chatState: ChatState = .idle
+    @StateObject private var stateTracker = SessionStateTracker.shared
 
     // Voice features - shared with WelcomeView
     @ObservedObject var voiceManager: EnhancedVoiceManager
@@ -312,6 +318,15 @@ struct ChatView: View {
         }
 
         .onAppear {
+            // Request notification permission for background state changes
+            UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
+                if granted {
+                    print("✅ Notification permission granted")
+                } else if let error = error {
+                    print("⚠️ Notification permission error: \(error)")
+                }
+            }
+            
             // Set up voice manager callback (Transcribe mode)
             voiceManager.onSubmitMessage = { transcribedText in
                 inputText = transcribedText
@@ -448,6 +463,9 @@ struct ChatView: View {
         inputText = ""
         isLoading = true
 
+        // Update chat state after sending message
+        updateChatState()
+
         // Re-enable auto-scroll when user sends a new message
         shouldAutoScroll = true
 
@@ -471,8 +489,6 @@ struct ChatView: View {
                 // Create session if we don't have one
                 if currentSessionId == nil {
                     // Always create a new session when starting from welcome screen
-                    let sessionStartTime = Date()
-                    print("⏱️ [SESSION_START] Beginning session creation")
                     print("🆕 Creating new session (trial mode: \(apiService.isTrialMode))")
                     let (sessionId, initialMessages) = try await apiService.startAgent()
                     
@@ -482,7 +498,7 @@ struct ChatView: View {
                         print("💾 Saved as Current Session in trial mode")
                     }
                     
-                    print("✅ SESSION READY: \(sessionId)")
+                    print("✅ SESSION CREATED: \(sessionId)")
 
                     // Load any initial messages from the session
                     if !initialMessages.isEmpty {
@@ -491,55 +507,41 @@ struct ChatView: View {
                         }
                     }
 
-                    // Read provider and model from config (in parallel)
-                    print("🔧 READING PROVIDER AND MODEL FROM CONFIG (parallel)")
-                    async let providerResult = apiService.readConfigValue(key: "GOOSE_PROVIDER")
-                    async let modelResult = apiService.readConfigValue(key: "GOOSE_MODEL")
-                    
-                    guard let provider = await providerResult,
-                        let model = await modelResult
-                    else {
-                        throw APIError.noData
-                    }
-
-                    print("🔧 UPDATING PROVIDER TO \(provider) WITH MODEL \(model)")
-                    try await apiService.updateProvider(
-                        sessionId: sessionId, provider: provider, model: model)
-                    print("✅ PROVIDER UPDATED FOR SESSION: \(sessionId)")
-
-                    // Apply server-side prompts and load extensions in parallel
-                    print("🔧 STARTING AGENT UPDATE AND EXTENSION LOAD (parallel) for session: \(sessionId)")
-                    async let updateFromSessionTask: Void = apiService.updateFromSession(sessionId: sessionId)
-                    async let loadExtensionsTask: Void = apiService.loadEnabledExtensions(sessionId: sessionId)
-                    try await (updateFromSessionTask, loadExtensionsTask)
-                    print("✅ AGENT UPDATED AND EXTENSIONS LOADED for session: \(sessionId)")
-
                     currentSessionId = sessionId
+                    // Mark as not activated - will be activated on first message (same flow for all sessions)
+                    isSessionActivated = false
+                }
+                
+                // Activate session if needed (same for NEW and EXISTING sessions)
+                // This matches desktop flow: resumeAgent + updateFromSession
+                if !isSessionActivated {
+                    print("📱 Activating session with provider/extensions/system-prompt...")
+                    guard let sessionId = currentSessionId else {
+                        throw APIError.invalidResponse
+                    }
                     
-                    // Mark as activated since we just created it with full model/extensions
+                    await MainActor.run {
+                        isActivatingSession = true
+                    }
+                    
+                    let activationStart = Date()
+                    
+                    // Load provider and extensions from server config (matches desktop)
+                    // IMPORTANT: Don't use the returned messages - we want to keep the user's new message visible
+                    let (_, _) = try await apiService.resumeAgent(
+                        sessionId: sessionId, loadModelAndExtensions: true)
+                    print("✅ Provider and extensions loaded from config")
+                    
+                    // Apply system prompt (desktop_prompt.md + recipe)
+                    try await apiService.updateFromSession(sessionId: sessionId)
+                    print("✅ System prompt applied")
+                    
+                    let activationTime = Date().timeIntervalSince(activationStart)
+                    print("⏱️ Session activated in \(String(format: "%.2f", activationTime))s")
+                    
                     await MainActor.run {
                         isSessionActivated = true
-                    }
-                    
-                    // Log total session creation time
-                    let totalElapsed = Date().timeIntervalSince(sessionStartTime)
-                    print("⏱️ [SESSION_START] Session ready in \(String(format: "%.2f", totalElapsed))s")
-                } else {
-                    // Resuming an existing session - activate it if needed
-                    if !isSessionActivated {
-                        print("📱 Activating resumed session with model/extensions...")
-                        guard let sessionId = currentSessionId else {
-                            throw APIError.invalidResponse
-                        }
-                        
-                        // Resume with full model and extensions loading
-                        let (_, _) = try await apiService.resumeAgent(
-                            sessionId: sessionId, loadModelAndExtensions: true)
-                        print("✅ Session activated with model/extensions")
-                        
-                        await MainActor.run {
-                            isSessionActivated = true
-                        }
+                        isActivatingSession = false
                     }
                 }
 
@@ -710,6 +712,9 @@ struct ChatView: View {
                     self.limitMessages()
                     self.limitToolCalls()
                 }
+                
+                // Update chat state after processing message
+                self.updateChatState()
             }
 
         case .error(let errorEvent):
@@ -731,6 +736,9 @@ struct ChatView: View {
                 )
             }
             activeToolCalls.removeAll()
+            
+            // Update chat state after stream finishes
+            updateChatState()
 
             // Force final scroll to bottom when streaming completes
             if shouldAutoScroll {
@@ -796,6 +804,59 @@ struct ChatView: View {
         currentStreamTask = nil
         isLoading = false
         stopPollingForUpdates()  // Also stop polling if any
+    }
+    
+    // MARK: - Chat State Management
+    
+    /// Update chat state based on current messages and tool calls
+    private func updateChatState() {
+        let newState = ChatState.from(messages: messages, activeToolCalls: activeToolCalls)
+        if chatState != newState {
+            let oldState = chatState
+            chatState = newState
+            print("🔄 Chat state changed: \(oldState.displayText) → \(newState.displayText)")
+            
+            // Broadcast state to global tracker so other views can see it
+            if let sessionId = currentSessionId {
+                stateTracker.updateState(sessionId: sessionId, state: newState)
+            }
+            
+            // Send notification when session becomes idle or waiting for user
+            if newState.isIdle || newState.isWaitingForUser {
+                sendStateChangeNotification(state: newState)
+            }
+        }
+    }
+    
+    /// Send system notification when session state changes
+    private func sendStateChangeNotification(state: ChatState) {
+        guard let sessionId = currentSessionId else { return }
+        
+        let content = UNMutableNotificationContent()
+        
+        if state.isIdle {
+            content.title = "Session Complete"
+            content.body = "Session \(sessionId.prefix(8))... is ready"
+            content.sound = .default
+        } else if state.isWaitingForUser {
+            content.title = "Approval Needed"
+            content.body = "Session \(sessionId.prefix(8))... needs your confirmation"
+            content.sound = .default
+        }
+        
+        let request = UNNotificationRequest(
+            identifier: "session-\(sessionId)-\(state.rawValue)",
+            content: content,
+            trigger: nil  // Immediate
+        )
+        
+        UNUserNotificationCenter.current().add(request) { error in
+            if let error = error {
+                print("⚠️ Failed to send notification: \(error)")
+            } else {
+                print("✅ Sent notification for state: \(state.displayText)")
+            }
+        }
     }
 
     // MARK: - Session Polling for Live Updates
@@ -872,7 +933,7 @@ struct ChatView: View {
                     let (_, newMessages) = try await apiService.resumeAgent(sessionId: sessionId)
                     let newHash = messagesHash(newMessages)
 
-                    await MainActor.run {
+                    let shouldStopPolling = await MainActor.run { () -> Bool in
                         if newHash != lastHash {
                             // Content changed!
                             print("📡 Polling detected changes (hash: \(lastHash) -> \(newHash))")
@@ -882,6 +943,9 @@ struct ChatView: View {
 
                             // Rebuild tool call state from messages
                             rebuildToolCallState(from: newMessages)
+                            
+                            // Update chat state after polling detects changes
+                            updateChatState()
 
                             noChangeCount = 0
                             lastHash = newHash
@@ -890,15 +954,31 @@ struct ChatView: View {
                             // Reset poll interval when we find changes
                             pollInterval = 2.0
                         } else {
-                            // No changes
+                            // No changes in message content, but still check/update state
+                            // (backend might have finished processing without new messages yet)
+                            rebuildToolCallState(from: newMessages)
+                            updateChatState()
+                            
                             noChangeCount += 1
-                            print("📡 Poll check \(noChangeCount)/\(maxNoChangeChecks): no changes")
+                            print("📡 Poll check \(noChangeCount)/\(maxNoChangeChecks): no message changes (state: \(chatState.displayText))")
 
                             // Exponential backoff up to 5 seconds
                             if noChangeCount > 3 {
                                 pollInterval = min(pollInterval * 1.3, 5.0)
                             }
                         }
+                        
+                        // Check if we should stop polling (must be on MainActor to read chatState)
+                        if chatState.isIdle {
+                            print("📡 Session reached idle state, stopping polling")
+                            return true
+                        }
+                        
+                        return false
+                    }
+                    
+                    if shouldStopPolling {
+                        break
                     }
                 } catch {
                     // Check if it's a 404 - session might have been deleted
@@ -1052,19 +1132,20 @@ struct ChatView: View {
         )
         print("🔧 Tool call message map has \(newToolCallMessageMap.count) entries")
         
+        // Show what's active (this is critical for debugging polling)
+        if !newActiveToolCalls.isEmpty {
+            print("🔧 Active tool calls (waiting for responses):")
+            for (id, timing) in newActiveToolCalls {
+                print("   ⏳ \(id.prefix(8)): \(timing.toolCall.name)")
+            }
+        }
+        
         // Show sample of what was built
         if !newCompletedToolCalls.isEmpty {
             print("🔧 Sample completed tool calls:")
             for (id, completed) in newCompletedToolCalls.prefix(3) {
                 let msgId = newToolCallMessageMap[id] ?? "NO MESSAGE"
                 print("   🟢 \(id.prefix(8)): \(completed.toolCall.name) → Message \(msgId.prefix(8))")
-            }
-        }
-        
-        if !newToolCallMessageMap.isEmpty {
-            print("🔧 Sample message mappings:")
-            for (toolId, msgId) in newToolCallMessageMap.prefix(3) {
-                print("   🔗 Tool \(toolId.prefix(8)) → Message \(msgId.prefix(8))")
             }
         }
     }
@@ -1353,6 +1434,9 @@ struct ChatView: View {
                     // Rebuild tool call state BEFORE checking if we should poll
                     // (since shouldPollForUpdates checks activeToolCalls)
                     rebuildToolCallState(from: sessionMessages)
+                    
+                    // Update chat state and broadcast to tracker
+                    updateChatState()
 
                     print("📊 Messages after rebuild: \(messages.count)")
                     print("📊 First message ID: \(messages.first?.id ?? "none")")
@@ -1399,6 +1483,11 @@ struct ChatView: View {
             currentStreamTask = nil
         }
 
+        // Clear state from tracker if we had a session
+        if let oldSessionId = currentSessionId {
+            stateTracker.clearState(for: oldSessionId)
+        }
+
         // Clear all state for a fresh session
         messages.removeAll()
         activeToolCalls.removeAll()
@@ -1426,6 +1515,7 @@ struct ChatView: View {
             await MainActor.run {
                 messages = newMessages
                 rebuildToolCallState(from: newMessages)
+                updateChatState()  // Update state and broadcast to tracker
                 scrollRefreshTrigger = UUID()
                 print("✅ Session refreshed with \(newMessages.count) messages")
             }

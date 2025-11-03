@@ -20,6 +20,7 @@ struct SidebarView: View {
     
     // Agent management
     @StateObject private var agentStorage = AgentStorage.shared
+    @StateObject private var stateTracker = SessionStateTracker.shared
     @State private var showingRenameDialog = false
     @State private var agentToRename: AgentConfiguration?
     @State private var newAgentName = ""
@@ -382,10 +383,19 @@ struct DateSectionHeader: View {
 // MARK: - Session Row View
 struct SessionRowView: View {
     let session: ChatSession
+    @ObservedObject private var stateTracker = SessionStateTracker.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 8) {
+                // Active session indicator (pulsing dot)
+                if stateTracker.isProcessing(sessionId: session.id) {
+                    Circle()
+                        .fill(Color.blue)
+                        .frame(width: 8, height: 8)
+                        .pulsing()
+                }
+                
                 // Session name
                 Text(session.title)
                     .font(.system(size: 15, weight: .medium))

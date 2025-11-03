@@ -7,9 +7,15 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		4D6CA113A6714967B9BA0CA1001 /* AppNoticeOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6CA113A6714967B9BA0CA1000 /* AppNoticeOverlay.swift */; };
 		5FB46C8A5B96A5D68C7CA66F /* VoiceInputManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F2CBE33C0F236E880C9F178 /* VoiceInputManager.swift */; };
 		832B7A0E2EA9E166000FB7AB /* TrialMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 832B7A0D2EA9E166000FB7AB /* TrialMode.swift */; };
 		83398FCC2EA0D47900EB958C /* TrialModeInstructionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83398FCB2EA0D47900EB958C /* TrialModeInstructionsView.swift */; };
+		834385142EB5C06300ACC05E /* AppNoticeCenter.swift in Frameworks */ = {isa = PBXBuildFile; fileRef = 8542CDA2877E4BEF8ADA8A5C000 /* AppNoticeCenter.swift */; };
+		834385152EB5C06300ACC05E /* AppNoticeOverlay.swift in Frameworks */ = {isa = PBXBuildFile; fileRef = 4D6CA113A6714967B9BA0CA1000 /* AppNoticeOverlay.swift */; };
+		834385172EB5C56F00ACC05E /* ChatState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 834385162EB5C56F00ACC05E /* ChatState.swift */; };
+		834385192EB5C90B00ACC05E /* SessionStateTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 834385182EB5C90B00ACC05E /* SessionStateTracker.swift */; };
+		8343851B2EB5D44B00ACC05E /* PulseModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8343851A2EB5D44B00ACC05E /* PulseModifier.swift */; };
 		834A2CB82E98D93A00D15D6A /* ContinuousVoiceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 834A2CB72E98D93A00D15D6A /* ContinuousVoiceManager.swift */; };
 		834A2CB92E98D93B00D15D6A /* EnhancedVoiceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 834A2CB82E98D93B00D15D6A /* EnhancedVoiceManager.swift */; };
 		837D4D732EA6FAD6000A95B7 /* SessionsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 837D4D722EA6FAD6000A95B7 /* SessionsCard.swift */; };
@@ -21,6 +27,7 @@
 		838F2DF02E9E270300E2FC48 /* ChatInputView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 838F2DEF2E9E270300E2FC48 /* ChatInputView.swift */; };
 		83ACD8AB2E827DB500379D0E /* ConfigurationHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83ACD8A82E827DB500379D0E /* ConfigurationHandler.swift */; };
 		83EF04C72EB0393200D2D688 /* MarkdownTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83EF04C62EB0393200D2D688 /* MarkdownTestView.swift */; };
+		8542CDA2877E4BEF8ADA8A5C001 /* AppNoticeCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8542CDA2877E4BEF8ADA8A5C000 /* AppNoticeCenter.swift */; };
 		8C4210473D62873842C1D790 /* MarkdownTableView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA377AE97CC0C621896375E7 /* MarkdownTableView.swift */; };
 		A0E8AD4226A0448EA14A1E4D /* CalendarExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE15643668F34C98B329A6FA /* CalendarExtensions.swift */; };
 		A1234567890ABCDEF001 /* GooseApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1234567890ABCDEF000 /* GooseApp.swift */; };
@@ -43,14 +50,16 @@
 		D3BC33FE2EA16CF30057E748 /* TrialModeBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3BC33FD2EA16CF30057E748 /* TrialModeBanner.swift */; };
 		D3BC34002EA1713D0057E748 /* NodeMatrix.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3BC33FF2EA1713D0057E748 /* NodeMatrix.swift */; };
 		D3BC34042EA19D990057E748 /* NodeFocus.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3BC34032EA19D990057E748 /* NodeFocus.swift */; };
-		8542CDA2877E4BEF8ADA8A5C001 /* AppNoticeCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8542CDA2877E4BEF8ADA8A5C000 /* AppNoticeCenter.swift */; };
-		4D6CA113A6714967B9BA0CA1001 /* AppNoticeOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6CA113A6714967B9BA0CA1000 /* AppNoticeOverlay.swift */; };
-	/* End PBXBuildFile section */
+/* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		0F2CBE33C0F236E880C9F178 /* VoiceInputManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceInputManager.swift; sourceTree = "<group>"; };
+		4D6CA113A6714967B9BA0CA1000 /* AppNoticeOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppNoticeOverlay.swift; sourceTree = "<group>"; };
 		832B7A0D2EA9E166000FB7AB /* TrialMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = TrialMode.swift; path = Goose/TrialMode.swift; sourceTree = "<group>"; };
 		83398FCB2EA0D47900EB958C /* TrialModeInstructionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrialModeInstructionsView.swift; sourceTree = "<group>"; };
+		834385162EB5C56F00ACC05E /* ChatState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ChatState.swift; path = Goose/ChatState.swift; sourceTree = "<group>"; };
+		834385182EB5C90B00ACC05E /* SessionStateTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SessionStateTracker.swift; path = Goose/SessionStateTracker.swift; sourceTree = "<group>"; };
+		8343851A2EB5D44B00ACC05E /* PulseModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PulseModifier.swift; path = Goose/PulseModifier.swift; sourceTree = "<group>"; };
 		834A2CB72E98D93A00D15D6A /* ContinuousVoiceManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ContinuousVoiceManager.swift; path = Goose/ContinuousVoiceManager.swift; sourceTree = "<group>"; };
 		834A2CB82E98D93B00D15D6A /* EnhancedVoiceManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnhancedVoiceManager.swift; sourceTree = "<group>"; };
 		837D4D722EA6FAD6000A95B7 /* SessionsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SessionsCard.swift; path = Goose/SessionsCard.swift; sourceTree = "<group>"; };
@@ -64,6 +73,7 @@
 		83ACD8A92E827DB500379D0E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		83ACD8AC2E827FAE00379D0E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		83EF04C62EB0393200D2D688 /* MarkdownTestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MarkdownTestView.swift; path = Goose/MarkdownTestView.swift; sourceTree = "<group>"; };
+		8542CDA2877E4BEF8ADA8A5C000 /* AppNoticeCenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppNoticeCenter.swift; sourceTree = "<group>"; };
 		A1234567890ABCDEF000 /* GooseApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GooseApp.swift; sourceTree = "<group>"; };
 		A1234567890ABCDEF002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		A1234567890ABCDEF004 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -86,17 +96,15 @@
 		D3BC34032EA19D990057E748 /* NodeFocus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NodeFocus.swift; sourceTree = "<group>"; };
 		EA377AE97CC0C621896375E7 /* MarkdownTableView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownTableView.swift; sourceTree = "<group>"; };
 		FE1A3D767C87B30740AC05D2 /* StackedToolCallsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StackedToolCallsView.swift; sourceTree = "<group>"; };
-		8542CDA2877E4BEF8ADA8A5C000 /* AppNoticeCenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppNoticeCenter.swift; sourceTree = "<group>"; };
-		4D6CA113A6714967B9BA0CA1000 /* AppNoticeOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppNoticeOverlay.swift; sourceTree = "<group>"; };
-	/* End PBXFileReference section */
+/* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		A1234567890ABCDEF996 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				8542CDA2877E4BEF8ADA8A5C001 /* AppNoticeCenter.swift in Sources */,
-				4D6CA113A6714967B9BA0CA1001 /* AppNoticeOverlay.swift in Sources */,
+				834385142EB5C06300ACC05E /* AppNoticeCenter.swift in Frameworks */,
+				834385152EB5C06300ACC05E /* AppNoticeOverlay.swift in Frameworks */,
 				A1234567890ABCDEF020 /* Markdown in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -115,6 +123,9 @@
 		A1234567890ABCDEF990 = {
 			isa = PBXGroup;
 			children = (
+				8343851A2EB5D44B00ACC05E /* PulseModifier.swift */,
+				834385182EB5C90B00ACC05E /* SessionStateTracker.swift */,
+				834385162EB5C56F00ACC05E /* ChatState.swift */,
 				83EF04C62EB0393200D2D688 /* MarkdownTestView.swift */,
 				832B7A0D2EA9E166000FB7AB /* TrialMode.swift */,
 				837D4D722EA6FAD6000A95B7 /* SessionsCard.swift */,
@@ -146,7 +157,6 @@
 				A1234567890ABCDEF002 /* ContentView.swift */,
 				8542CDA2877E4BEF8ADA8A5C000 /* AppNoticeCenter.swift */,
 				4D6CA113A6714967B9BA0CA1000 /* AppNoticeOverlay.swift */,
-
 				AE15643668F34C98B329A6FA /* CalendarExtensions.swift */,
 				A1234567890ABCDEF009 /* ChatView.swift */,
 				0F2CBE33C0F236E880C9F178 /* VoiceInputManager.swift */,
@@ -270,6 +280,8 @@
 				83EF04C72EB0393200D2D688 /* MarkdownTestView.swift in Sources */,
 				C3E99F296500267DEFD596CA /* VoiceOutputManager.swift in Sources */,
 				D32A01832EAA7D8100AF9DD0 /* SharedMessageComponents.swift in Sources */,
+				834385172EB5C56F00ACC05E /* ChatState.swift in Sources */,
+				834385192EB5C90B00ACC05E /* SessionStateTracker.swift in Sources */,
 				8C4210473D62873842C1D790 /* MarkdownTableView.swift in Sources */,
 				D32A01852EAA7D8F00AF9DD0 /* ToolViews.swift in Sources */,
 				D3BC33FC2EA161BA0057E748 /* SafeAreaExtension.swift in Sources */,
@@ -285,6 +297,7 @@
 				A1234567890ABCDEF018 /* SettingsView.swift in Sources */,
 				D3BC33FA2EA1597B0057E748 /* WelcomeCard.swift in Sources */,
 				A1234567890ABCDEF001 /* GooseApp.swift in Sources */,
+				8343851B2EB5D44B00ACC05E /* PulseModifier.swift in Sources */,
 				D32A01812EAA7D7300AF9DD0 /* UserMessageView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

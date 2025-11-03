@@ -361,22 +361,28 @@ struct WelcomeView: View {
         }
         
         if let focusedSession = focusedNodeSession {
-            // Route to existing session
+            // Route to existing session with message
             print("📨 Routing message to session: \(focusedSession.id)")
+            
+            // Navigate to the session first
             onSessionSelect(focusedSession.id)
             
-            // Send the message to that session via notification
-            NotificationCenter.default.post(
-                name: Notification.Name("SendMessageToSession"),
-                object: nil,
-                userInfo: ["message": trimmedText, "sessionId": focusedSession.id]
-            )
+            // Then send the message via notification after a delay to ensure ChatView is loaded
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                NotificationCenter.default.post(
+                    name: Notification.Name("SendMessageToSession"),
+                    object: nil,
+                    userInfo: ["message": trimmedText, "sessionId": focusedSession.id]
+                )
+            }
             
             // Clear state
+            inputText = ""
             focusedNodeSession = nil
         } else {
             // Start new chat
             onStartChat(inputText)
+            inputText = ""
         }
     }
     
