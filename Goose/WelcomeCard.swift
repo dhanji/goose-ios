@@ -1,5 +1,67 @@
 import SwiftUI
 
+// MARK: - Welcome Card Glass Modifier
+
+/// Applies Liquid Glass effect on iOS 26+ for the welcome card
+private struct WelcomeCardGlassModifier: ViewModifier {
+    let colorScheme: ColorScheme
+    let cardBackgroundColor: Color
+    
+    func body(content: Content) -> some View {
+        if #available(iOS 26.0, *) {
+            content
+                .background(
+                    // Background extension that goes upward (for safe area)
+                    VStack(spacing: 0) {
+                        Color.clear
+                            .frame(height: 500)
+                            .offset(y: -500)
+                        Spacer()
+                    }
+                )
+                .glassEffect(.regular, in: UnevenRoundedRectangle(
+                    topLeadingRadius: 0,
+                    bottomLeadingRadius: 32,
+                    bottomTrailingRadius: 32,
+                    topTrailingRadius: 0
+                ))
+                .shadow(
+                    color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.15),
+                    radius: 16,
+                    x: 0,
+                    y: 8
+                )
+        } else {
+            // Fallback for iOS 17-25
+            content
+                .background(cardBackgroundColor)
+                .background(
+                    // Background extension that goes upward
+                    VStack(spacing: 0) {
+                        cardBackgroundColor
+                            .frame(height: 500)
+                            .offset(y: -500)
+                        Spacer()
+                    }
+                )
+                .clipShape(
+                    UnevenRoundedRectangle(
+                        topLeadingRadius: 0,
+                        bottomLeadingRadius: 32,
+                        bottomTrailingRadius: 32,
+                        topTrailingRadius: 0
+                    )
+                )
+                .shadow(
+                    color: Color.black.opacity(colorScheme == .dark ? 0.4 : 0.12),
+                    radius: 16,
+                    x: 0,
+                    y: 8
+                )
+        }
+    }
+}
+
 struct WelcomeCard: View {
     @Environment(\.colorScheme) var colorScheme
     
@@ -241,31 +303,7 @@ struct WelcomeCard: View {
         .padding(.top, 48)
         .padding(.bottom, 32)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(cardBackgroundColor)
-        .background(
-            // Background extension that goes upward
-            VStack(spacing: 0) {
-                cardBackgroundColor
-                    .frame(height: 500)
-                    .offset(y: -500)
-                
-                Spacer()
-            }
-        )
-        .clipShape(
-            UnevenRoundedRectangle(
-                topLeadingRadius: 0,
-                bottomLeadingRadius: 32,
-                bottomTrailingRadius: 32,
-                topTrailingRadius: 0
-            )
-        )
-        .shadow(
-            color: Color.black.opacity(colorScheme == .dark ? 0.4 : 0.12),
-            radius: 16,
-            x: 0,
-            y: 8
-        )
+        .modifier(WelcomeCardGlassModifier(colorScheme: colorScheme, cardBackgroundColor: cardBackgroundColor))
         .onAppear {
             startTypewriterEffect(isInitialLoad: true)
             // Fetch token count

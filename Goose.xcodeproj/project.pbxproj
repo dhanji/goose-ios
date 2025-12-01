@@ -24,7 +24,6 @@
 		838F2DEE2E9E24E200E2FC48 /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 838F2DED2E9E24E200E2FC48 /* SidebarView.swift */; };
 		838F2DF02E9E270300E2FC48 /* ChatInputView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 838F2DEF2E9E270300E2FC48 /* ChatInputView.swift */; };
 		83ACD8AB2E827DB500379D0E /* ConfigurationHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83ACD8A82E827DB500379D0E /* ConfigurationHandler.swift */; };
-		83CA4B9B2EC4433200191363 /* Ed25519Signer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83CA4B9A2EC4433200191363 /* Ed25519Signer.swift */; };
 		83EF04C72EB0393200D2D688 /* MarkdownTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83EF04C62EB0393200D2D688 /* MarkdownTestView.swift */; };
 		8542CDA2877E4BEF8ADA8A5C001 /* AppNoticeCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8542CDA2877E4BEF8ADA8A5C000 /* AppNoticeCenter.swift */; };
 		8C4210473D62873842C1D790 /* MarkdownTableView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA377AE97CC0C621896375E7 /* MarkdownTableView.swift */; };
@@ -69,7 +68,6 @@
 		83ACD8A82E827DB500379D0E /* ConfigurationHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigurationHandler.swift; sourceTree = "<group>"; };
 		83ACD8A92E827DB500379D0E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		83ACD8AC2E827FAE00379D0E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
-		83CA4B9A2EC4433200191363 /* Ed25519Signer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = Ed25519Signer.swift; path = Goose/Ed25519Signer.swift; sourceTree = "<group>"; };
 		83EF04C62EB0393200D2D688 /* MarkdownTestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MarkdownTestView.swift; path = Goose/MarkdownTestView.swift; sourceTree = "<group>"; };
 		8542CDA2877E4BEF8ADA8A5C000 /* AppNoticeCenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppNoticeCenter.swift; sourceTree = "<group>"; };
 		A1234567890ABCDEF000 /* GooseApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GooseApp.swift; sourceTree = "<group>"; };
@@ -121,7 +119,6 @@
 		A1234567890ABCDEF990 = {
 			isa = PBXGroup;
 			children = (
-				83CA4B9A2EC4433200191363 /* Ed25519Signer.swift */,
 				8334E3602EB89C5D009094CE /* FavoriteSessionsStorage.swift */,
 				83EF04C62EB0393200D2D688 /* MarkdownTestView.swift */,
 				832B7A0D2EA9E166000FB7AB /* TrialMode.swift */,
@@ -283,7 +280,6 @@
 				A1234567890ABCDEF012 /* Message.swift in Sources */,
 				83398FCC2EA0D47900EB958C /* TrialModeInstructionsView.swift in Sources */,
 				83ACD8AB2E827DB500379D0E /* ConfigurationHandler.swift in Sources */,
-				83CA4B9B2EC4433200191363 /* Ed25519Signer.swift in Sources */,
 				834A2CB82E98D93A00D15D6A /* ContinuousVoiceManager.swift in Sources */,
 				834A2CB92E98D93B00D15D6A /* EnhancedVoiceManager.swift in Sources */,
 				A1234567890ABCDEF014 /* GooseAPIService.swift in Sources */,
@@ -323,7 +319,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.1.1;
+				MARKETING_VERSION = 1.1.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.goose.chat;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -473,7 +469,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.1.1;
+				MARKETING_VERSION = 1.1.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.goose.chat;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;

@@ -6,9 +6,6 @@ class GooseAPIService: ObservableObject {
 
     @Published var isConnected = false
     @Published var connectionError: String?
-    
-    // Ed25519 signer for request authentication
-    private var signer: Ed25519Signer?
 
     // The configured URL
     private var baseURL: String {
@@ -29,44 +26,7 @@ class GooseAPIService: ObservableObject {
         return baseURL.contains(".ts.net") || baseURL.contains("://100.")
     }
 
-    private init() {
-        // Initialize signer if Ed25519 private key is available
-        if let privateKey = ConfigurationHandler.ed25519PrivateKey {
-            print("✓ Found Ed25519 private key, initializing signer...")
-            self.signer = Ed25519Signer(privateKeyHex: privateKey)
-            if self.signer != nil {
-                print("✓ Ed25519 signer initialized successfully")
-            } else {
-                print("❌ Ed25519 signer failed to initialize")
-            }
-        } else {
-            print("⚠️ No Ed25519 private key found - signatures will not be added to requests")
-        }
-    }
-    
-    // MARK: - Request Signing
-    
-    /// Add Ed25519 signature to a URLRequest if signer is available
-    private func signRequest(_ request: inout URLRequest) {
-        guard let signer = signer else { return }
-        
-        let method = request.httpMethod ?? "GET"
-        var path = request.url?.path ?? ""
-        
-        // Strip /tunnel/{agent_id} prefix if present (tunnel proxy removes this before forwarding)
-        if path.starts(with: "/tunnel/") {
-            if let range = path.range(of: "/tunnel/[^/]+/", options: .regularExpression) {
-                path = String(path[range.upperBound...])
-                if !path.starts(with: "/") {
-                    path = "/" + path
-                }
-            }
-        }
-        
-        let bodyString = request.httpBody.flatMap { String(data: $0, encoding: .utf8) }
-        let signature = signer.sign(method: method, path: path, body: bodyString)
-        request.setValue(signature, forHTTPHeaderField: "X-Corp-Signature")
-    }
+    private init() {}
     
     // MARK: - Centralized Error Handling
     
@@ -191,7 +151,6 @@ class GooseAPIService: ObservableObject {
             urlRequest.httpBody = requestData
             
             // Sign the request with Ed25519 if signer is available
-            signRequest(&urlRequest)
 
             // Debug logging
             if let bodyString = String(data: requestData, encoding: .utf8) {
@@ -249,7 +208,6 @@ class GooseAPIService: ObservableObject {
         request.setValue(secretKey, forHTTPHeaderField: "X-Secret-Key")
 
         do {
-            signRequest(&request)
             let (data, response) = try await URLSession.shared.data(for: request)
 
             if let httpResponse = response as? HTTPURLResponse {
@@ -303,7 +261,6 @@ class GooseAPIService: ObservableObject {
             let body: [String: Any] = ["working_dir": effectiveWorkingDir]
             request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
-            signRequest(&request)
             let (data, response) = try await URLSession.shared.data(for: request)
 
             guard let httpResponse = response as? HTTPURLResponse else {
@@ -339,7 +296,6 @@ class GooseAPIService: ObservableObject {
                 request.httpMethod = "GET"
                 request.setValue(self.secretKey, forHTTPHeaderField: "X-Secret-Key")
                 
-                signRequest(&request)
                 let (data, response) = try await URLSession.shared.data(for: request)
                 
                 guard let httpResponse = response as? HTTPURLResponse else {
@@ -374,7 +330,6 @@ class GooseAPIService: ObservableObject {
             ]
             request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
-            signRequest(&request)
             let (data, response) = try await URLSession.shared.data(for: request)
 
             guard let httpResponse = response as? HTTPURLResponse else {
@@ -415,7 +370,6 @@ class GooseAPIService: ObservableObject {
         let body: [String: Any] = ["session_id": sessionId]
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
-            signRequest(&request)
         let (data, response) = try await URLSession.shared.data(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse else {
@@ -482,7 +436,6 @@ class GooseAPIService: ObservableObject {
 
         do {
             request.httpBody = try JSONSerialization.data(withJSONObject: body)
-            signRequest(&request)
             let (data, response) = try await URLSession.shared.data(for: request)
             let elapsed = Date().timeIntervalSince(startTime)
 
@@ -548,7 +501,6 @@ class GooseAPIService: ObservableObject {
                 print(bodyString)
             }
 
-            signRequest(&request)
             let (data, response) = try await URLSession.shared.data(for: request)
 
             guard let httpResponse = response as? HTTPURLResponse else {
@@ -583,7 +535,6 @@ class GooseAPIService: ObservableObject {
             request.httpMethod = "GET"
             request.setValue(self.secretKey, forHTTPHeaderField: "X-Secret-Key")
 
-            signRequest(&request)
             let (data, response) = try await URLSession.shared.data(for: request)
 
             guard let httpResponse = response as? HTTPURLResponse else {
@@ -641,7 +592,6 @@ class GooseAPIService: ObservableObject {
         do {
             request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
-            signRequest(&request)
             let (data, response) = try await URLSession.shared.data(for: request)
 
             guard let httpResponse = response as? HTTPURLResponse else {
@@ -679,7 +629,6 @@ class GooseAPIService: ObservableObject {
             var request = URLRequest(url: url)
             request.setValue(secretKey, forHTTPHeaderField: "X-Secret-Key")
 
-            signRequest(&request)
             let (data, response) = try await URLSession.shared.data(for: request)
 
             guard let httpResponse = response as? HTTPURLResponse else {
@@ -727,7 +676,6 @@ class GooseAPIService: ObservableObject {
             var request = URLRequest(url: url)
             request.setValue(secretKey, forHTTPHeaderField: "X-Secret-Key")
 
-            signRequest(&request)
             let (data, response) = try await URLSession.shared.data(for: request)
 
             guard let httpResponse = response as? HTTPURLResponse else {

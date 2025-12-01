@@ -1,5 +1,27 @@
 import SwiftUI
 
+// MARK: - Notice Card Glass Modifier
+
+/// Applies Liquid Glass effect on iOS 26+ for notice cards
+private struct NoticeCardGlassModifier: ViewModifier {
+    let backgroundColor: Color
+    
+    func body(content: Content) -> some View {
+        if #available(iOS 26.0, *) {
+            content
+                .background(.clear)
+                .glassEffect(.regular, in: .rect(cornerRadius: 12))
+                .shadow(color: Color.black.opacity(0.25), radius: 10, x: 0, y: 4)
+        } else {
+            // Fallback for iOS 17-25
+            content
+                .background(backgroundColor)
+                .cornerRadius(12)
+                .shadow(color: Color.black.opacity(0.2), radius: 8, x: 0, y: 4)
+        }
+    }
+}
+
 /// Global overlay that displays app-wide notices
 struct AppNoticeOverlay: View {
     @EnvironmentObject var noticeCenter: AppNoticeCenter

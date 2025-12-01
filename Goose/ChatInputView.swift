@@ -7,6 +7,32 @@
 
 import SwiftUI
 
+// MARK: - Chat Input Glass Modifier
+
+/// Applies Liquid Glass effect on iOS 26+, falls back to standard styling on earlier versions
+private struct ChatInputGlassModifier: ViewModifier {
+    let colorScheme: ColorScheme
+    
+    func body(content: Content) -> some View {
+        if #available(iOS 26.0, *) {
+            content
+                .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 32))
+                .shadow(color: Color.black.opacity(0.15), radius: 12, x: 0, y: 2)
+        } else {
+            // Fallback for iOS 17-25
+            content
+                .background(Color(UIColor.secondarySystemBackground))
+                .cornerRadius(32)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 32)
+                        .inset(by: 0.5)
+                        .stroke(Color(UIColor.separator), lineWidth: 0.5)
+                )
+                .shadow(color: Color.black.opacity(0.1), radius: 12, x: 0, y: 0)
+        }
+    }
+}
+
 struct ChatInputView: View {
     @Binding var text: String
     @Environment(\.colorScheme) var colorScheme
@@ -298,7 +324,7 @@ struct ChatInputView: View {
                 .frame(maxWidth: .infinity)
                 .background(
                     GeometryReader { geometry in
-                        Color(UIColor.secondarySystemBackground)
+                        Color.clear
                             .onAppear {
                                 inputHeight = geometry.size.height
                             }
@@ -307,18 +333,7 @@ struct ChatInputView: View {
                             }
                     }
                 )
-                .cornerRadius(32)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 32)
-                        .inset(by: 0.5)
-                        .stroke(Color(UIColor.separator), lineWidth: 0.5)
-                )
-                .shadow(
-                    color: Color.black.opacity(0.1),
-                    radius: 12,
-                    x: 0,
-                    y: 0
-                )
+                .modifier(ChatInputGlassModifier(colorScheme: colorScheme))
                 .padding(.horizontal, 16)
                 .padding(.bottom, 0)
             }

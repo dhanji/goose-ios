@@ -7,6 +7,23 @@
 
 import SwiftUI
 
+// MARK: - Sidebar Glass Modifier
+
+/// Applies Liquid Glass effect on iOS 26+ for the sidebar
+private struct SidebarGlassModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 26.0, *) {
+            content
+                .background(.clear)
+                .glassEffect(.regular, in: .rect(cornerRadius: 0))
+        } else {
+            // Fallback for iOS 17-25
+            content
+                .background(Color(.systemBackground))
+        }
+    }
+}
+
 // MARK: - Sidebar View
 struct SidebarView: View {
     @Binding var isShowing: Bool
@@ -233,7 +250,7 @@ struct SidebarView: View {
                                             .foregroundColor(.primary)
                                         
                                         HStack(spacing: 8) {
-                                            Text("Agents")
+                                            Text("Connected Agents")
                                                 .font(.system(size: 15, weight: .medium))
                                                 .foregroundColor(.primary)
                                             
@@ -321,10 +338,6 @@ struct SidebarView: View {
                                     }
                                 }
                             }
-                            
-                            // Large spacer below agent section (no divider)
-                            Color.clear
-                                .frame(height: 120)
                             
                             // Favorites section
                             if !cachedFavoriteSessions.isEmpty {
@@ -457,7 +470,7 @@ struct SidebarView: View {
                     .background(Color(.systemBackground))
                 }
                 .frame(width: sidebarWidth)
-                .background(Color(.systemBackground))
+                .modifier(SidebarGlassModifier())
                 .offset(x: isShowing ? 0 : -sidebarWidth)
                 .animation(.easeInOut(duration: 0.3), value: isShowing)
 

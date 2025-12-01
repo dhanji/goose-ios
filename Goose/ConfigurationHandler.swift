@@ -262,17 +262,6 @@ class ConfigurationHandler: ObservableObject {
         let secret: String
     }
     
-    /// Get Ed25519 private key from MDM or UserDefaults (for testing)
-    static var ed25519PrivateKey: String? {
-        // First try MDM configuration (scoped to bundle ID)
-        if let mdmKey = UserDefaults.standard.string(forKey: "ed25519_private_key") {
-            return mdmKey
-        }
-        // Fall back to testing key in standard UserDefaults
-        return UserDefaults.standard.string(forKey: "goose_ed25519_private_key")
-    }
-    
-
     
     /// Handles incoming URL from QR code scan or deep link
     /// Expected format: goosechat://configure?data=<url-encoded-json>
